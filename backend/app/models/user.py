@@ -9,6 +9,7 @@ class UserRole(StrEnum):
     OWNER = "OWNER"
     ADMIN = "ADMIN"
     MEMBER = "MEMBER"
+    PLATFORM_ADMIN = "PLATFORM_ADMIN"
 
 
 class PyObjectId(str):

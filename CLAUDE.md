@@ -1,11 +1,13 @@
-# DocuMind — Project Conventions
+# DocuMind — Project Conventions (v2.0)
 
 ## Project Structure
 
 ```
 DocuMind/
-├── backend/       FastAPI + Python 3.12
-├── frontend/      Vue.js 3 + TypeScript
+├── backend/                FastAPI + Python 3.12
+├── notification-service/   Node.js 22 + Express (microservicio de notificaciones)
+├── frontend/               Vue.js 3 + TypeScript (app principal)
+├── admin-panel/            Angular 17 + NgRx (panel de administración)
 ├── docker-compose.yml
 └── .github/workflows/
 ```
@@ -48,6 +50,73 @@ Configured via `LLM_PROVIDER` env var (`openai` or `anthropic`). Code must suppo
 - OpenAI: `ChatOpenAI`, `OpenAIEmbeddings`
 - Anthropic: `ChatAnthropic`, `VoyageEmbeddings`
 
+### Admin Endpoints
+- Prefix: `/api/v1/admin/platform/*`
+- Role: `UserRole.PLATFORM_ADMIN` (separate from workspace `ADMIN`)
+- Use `Depends(require_platform_admin)` from `app.core.dependencies`
+
+### Redis Notification Events
+Celery workers publish to channel `"notifications"` (consumed by Node.js service).  
+WebSocket broadcasts go to `f"workspace:{workspace_id}"`.  
+Event schema: `{ type, workspace_id, user_id, userEmail, userName, metadata, title, body }`
+
+## Notification Service (Node.js)
+
+### Stack
+- **Express 4** — REST API on port 3001
+- **ioredis** — subscribes to `"notifications"` Redis channel from FastAPI
+- **Bull** — internal queue with retries + exponential backoff
+- **Nodemailer + Handlebars** — email sending with HTML templates
+- **Mongoose** — MongoDB access (`notifications` collection)
+- **Winston** — structured logging
+
+### Patterns
+- Config validated at startup via Joi (`src/config/index.js`)
+- JWT auth shares the same `JWT_SECRET` as FastAPI backend
+- Bull processes jobs in `src/workers/notification.worker.js`
+- Templates in `src/templates/*.hbs`, layout in `src/templates/layouts/base.hbs`
+
+### File layout
+```
+notification-service/src/
+├── index.js           Express app entry point
+├── config/            Joi-validated env config
+├── models/            Mongoose schemas
+├── routes/            Express routers
+├── services/          email, queue, notification business logic
+├── subscribers/       ioredis Redis subscriber
+├── workers/           Bull job processors
+└── templates/         Handlebars email templates
+```
+
+## Admin Panel (Angular 17)
+
+### Stack
+- **Angular 17 Standalone Components** — no NgModule
+- **NgRx** — store/effects/selectors in `src/app/store/`
+- **Angular Material** — UI components
+- **Chart.js + ng2-charts** — dashboard metrics
+- **Cypress** — E2E tests
+
+### Patterns
+- `app.config.ts` uses `provideRouter`, `provideHttpClient(withInterceptors([...]))`, `provideStore`, `provideEffects`
+- Auth interceptor adds JWT Bearer to all requests
+- Error interceptor calls `auth.logout()` on 401
+- `authGuard` checks `AuthService.isLoggedIn()` before activating routes
+- All feature components use `standalone: true`
+- Lazy loading via `loadComponent` in routes
+
+### File layout
+```
+admin-panel/src/app/
+├── app.config.ts      ApplicationConfig (providers)
+├── app.routes.ts      Routes with lazy loading
+├── core/              guards, interceptors, services
+├── store/             NgRx slices (workspaces, ...)
+├── features/          Standalone components per feature
+└── shared/            Models (TypeScript interfaces), shared components
+```
+
 ## Frontend
 
 ### Stack
@@ -75,21 +144,24 @@ Configured via `LLM_PROVIDER` env var (`openai` or `anthropic`). Code must suppo
 # Copy env files
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+cp notification-service/.env.example notification-service/.env
 
-# Start infrastructure + app
+# Start all services
 docker compose up -d
 
-# Backend only (no Docker)
+# Individual services (no Docker)
 cd backend && uv sync && uv run uvicorn app.main:app --reload
-
-# Frontend only (no Docker)
+cd notification-service && npm install && npm run dev
 cd frontend && npm install && npm run dev
+cd admin-panel && npm install && npm start
 ```
 
 URLs:
 - API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
 - Frontend: http://localhost:5173
+- Admin Panel: http://localhost:4200
+- Notification Service: http://localhost:3001
 - MinIO: http://localhost:9001
 
 ## Testing
@@ -98,9 +170,16 @@ URLs:
 # Backend
 cd backend && uv run pytest tests/ -v
 
+# Notification Service
+cd notification-service && npm test
+
 # Frontend
 cd frontend && npm run test
 cd frontend && npm run type-check
+
+# Admin Panel
+cd admin-panel && npm run test:ci
+cd admin-panel && npm run e2e
 ```
 
 ## Important Constraints

@@ -68,21 +68,38 @@ async def _process_document_async(document_id: str, workspace_id: str):
             },
         )
 
-        # Notify via Redis pub/sub
+        # Notify WebSocket subscribers
         from app.redis_client import get_redis
-
-        redis = get_redis()
         import json
 
+        redis = get_redis()
         await redis.publish(
             f"workspace:{workspace_id}",
-            json.dumps(
-                {
-                    "type": "document_ready",
-                    "document_id": document_id,
-                    "name": doc["original_name"],
-                }
-            ),
+            json.dumps({
+                "type": "document_ready",
+                "document_id": document_id,
+                "name": doc["original_name"],
+            }),
+        )
+
+        # Notify Notification Service via shared Redis channel
+        uploader = await db.users.find_one({"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1})
+        await redis.publish(
+            "notifications",
+            json.dumps({
+                "type": "document_ready",
+                "workspace_id": workspace_id,
+                "user_id": str(doc["uploaded_by"]),
+                "userEmail": uploader["email"] if uploader else "",
+                "userName": uploader["full_name"] if uploader else "",
+                "metadata": {
+                    "documentId": document_id,
+                    "documentName": doc["original_name"],
+                    "chunkCount": len(chunk_docs),
+                },
+                "title": f'"{doc["original_name"]}" está listo para consultar',
+                "body": f"Se han indexado {len(chunk_docs)} fragmentos.",
+            }),
         )
 
     except Exception as exc:
@@ -91,6 +108,33 @@ async def _process_document_async(document_id: str, workspace_id: str):
             {"_id": doc_oid},
             {"$set": {"status": "ERROR", "error_message": str(exc)}},
         )
+        # Notify error via Notification Service
+        try:
+            from app.redis_client import get_redis
+            import json
+            redis = get_redis()
+            doc = await db.documents.find_one({"_id": doc_oid}, {"uploaded_by": 1, "original_name": 1})
+            if doc:
+                uploader = await db.users.find_one({"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1})
+                await redis.publish(
+                    "notifications",
+                    json.dumps({
+                        "type": "document_error",
+                        "workspace_id": workspace_id,
+                        "user_id": str(doc["uploaded_by"]),
+                        "userEmail": uploader["email"] if uploader else "",
+                        "userName": uploader["full_name"] if uploader else "",
+                        "metadata": {
+                            "documentId": document_id,
+                            "documentName": doc["original_name"],
+                            "errorMessage": str(exc),
+                        },
+                        "title": f'Error al procesar "{doc["original_name"]}"',
+                        "body": str(exc),
+                    }),
+                )
+        except Exception:
+            logger.exception("Failed to publish document_error notification")
 
 
 def _extract_text(file_bytes: bytes, mime_type: str, filename: str) -> list[dict]:

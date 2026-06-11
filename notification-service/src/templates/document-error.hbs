@@ -1,0 +1,5 @@
+<p>Hola {{userName}},</p>
+<p>Hubo un problema al procesar tu documento <strong>{{documentName}}</strong>.</p>
+{{#if errorMessage}}<p style="background:#fef2f2;border:1px solid #fca5a5;padding:12px;border-radius:8px;font-size:13px;color:#dc2626;">{{errorMessage}}</p>{{/if}}
+<p>Puedes intentar subirlo de nuevo. Si el problema persiste, contacta con soporte.</p>
+<a class="btn" href="{{appUrl}}/documents/upload">Subir de nuevo</a>

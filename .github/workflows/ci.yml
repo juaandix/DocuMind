@@ -38,6 +38,25 @@ jobs:
           LLM_PROVIDER: openai
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+  notification-service-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: notification-service
+        run: npm ci
+      - name: Tests
+        working-directory: notification-service
+        run: npm test
+        env:
+          REDIS_URL: redis://localhost:6379
+          MONGODB_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret-min-16-chars
+          SMTP_HOST: smtp.example.com
+
   frontend-tests:
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +73,17 @@ jobs:
       - name: Unit tests
         working-directory: frontend
         run: npm run test
+
+  admin-panel-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: admin-panel
+        run: npm ci
+      - name: Unit tests
+        working-directory: admin-panel
+        run: npm run test:ci

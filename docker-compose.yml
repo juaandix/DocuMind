@@ -49,6 +49,19 @@ services:
       - ./backend:/app
     command: celery -A app.workers.celery_app worker --loglevel=info
 
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3001:3001"
+    env_file: ./notification-service/.env
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./notification-service:/app
+      - /app/node_modules
+    command: node src/index.js
+
   frontend:
     build: ./frontend
     ports:
@@ -60,6 +73,17 @@ services:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev -- --host
+
+  admin-panel:
+    build: ./admin-panel
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend
+    volumes:
+      - ./admin-panel:/app
+      - /app/node_modules
+    command: npx ng serve --host 0.0.0.0 --port 4200
 
 volumes:
   mongo_data:

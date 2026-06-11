@@ -1,9 +1,9 @@
 # DocuMind — AI Document Intelligence Platform
-## Documento de Planificación de Proyecto
+## Documento de Planificación de Proyecto v2.0
 
 > **Autor:** Juan David Gil Díaz  
 > **Fecha:** Junio 2026  
-> **Stack:** Python · FastAPI · Vue.js 3 · MongoDB · Redis · LangChain · WebSockets
+> **Stack:** Python · FastAPI · Node.js · Express · Vue.js 3 · Angular 17 · MongoDB · Redis · LangChain · WebSockets
 
 ---
 
@@ -12,18 +12,20 @@
 1. [Descripción del Proyecto](#1-descripción-del-proyecto)
 2. [Stack Tecnológico](#2-stack-tecnológico)
 3. [Arquitectura del Sistema](#3-arquitectura-del-sistema)
-4. [Modelo de Datos](#4-modelo-de-datos)
-5. [API REST — Endpoints](#5-api-rest--endpoints)
-6. [WebSocket — Eventos](#6-websocket--eventos)
-7. [Pipeline de IA (RAG)](#7-pipeline-de-ia-rag)
-8. [Frontend — Páginas y Componentes](#8-frontend--páginas-y-componentes)
-9. [Estructura de Carpetas](#9-estructura-de-carpetas)
-10. [Variables de Entorno](#10-variables-de-entorno)
-11. [Docker Compose](#11-docker-compose)
-12. [CI/CD — GitHub Actions](#12-cicd--github-actions)
-13. [Plan de Desarrollo por Fases](#13-plan-de-desarrollo-por-fases)
-14. [Testing](#14-testing)
-15. [Decisiones Técnicas Destacadas](#15-decisiones-técnicas-destacadas)
+4. [Microservicio de Notificaciones (Node.js)](#4-microservicio-de-notificaciones-nodejs)
+5. [Panel de Administración (Angular 17)](#5-panel-de-administración-angular-17)
+6. [Modelo de Datos](#6-modelo-de-datos)
+7. [API REST — Endpoints](#7-api-rest--endpoints)
+8. [WebSocket — Eventos](#8-websocket--eventos)
+9. [Pipeline de IA (RAG)](#9-pipeline-de-ia-rag)
+10. [Frontend — Páginas y Componentes](#10-frontend--páginas-y-componentes)
+11. [Estructura de Carpetas](#11-estructura-de-carpetas)
+12. [Variables de Entorno](#12-variables-de-entorno)
+13. [Docker Compose](#13-docker-compose)
+14. [CI/CD — GitHub Actions](#14-cicd--github-actions)
+15. [Plan de Desarrollo por Fases](#15-plan-de-desarrollo-por-fases)
+16. [Testing](#16-testing)
+17. [Decisiones Técnicas Destacadas](#17-decisiones-técnicas-destacadas)
 
 ---
 
@@ -909,35 +911,57 @@ jobs:
 
 ---
 
-## 13. Plan de Desarrollo por Fases
+## 15. Plan de Desarrollo por Fases
 
-### Fase 0 — Setup (2-3 días)
+### Fase 0 — Setup v1 (2-3 días) ✅ COMPLETADA
 
-- [ ] Crear repositorio en GitHub (`documind`)
-- [ ] Inicializar backend: `fastapi`, `motor`, `redis-py`, `celery`, `langchain`
-- [ ] Inicializar frontend: `npm create vue@latest` con TypeScript
-- [ ] Configurar `docker-compose.yml` con MongoDB + Redis + MinIO
-- [ ] Configurar `ruff` (linter Python) y ESLint/Prettier (frontend)
-- [ ] Crear `CLAUDE.md` con convenciones del proyecto
+- [x] Crear repositorio en GitHub (`documind`)
+- [x] Inicializar backend: `fastapi`, `motor`, `redis-py`, `celery`, `langchain`
+- [x] Inicializar frontend: `npm create vue@latest` con TypeScript
+- [x] Configurar `docker-compose.yml` con MongoDB + Redis + MinIO
+- [x] Configurar `ruff` (linter Python) y ESLint/Prettier (frontend)
+- [x] Crear `CLAUDE.md` con convenciones del proyecto
 
-### Fase 1 — Auth y Multi-Tenant (4-5 días)
+### Fase 0-v2 — Setup v2 (1-2 días) ✅ COMPLETADA
 
-- [ ] Modelo `User` + `Workspace` en MongoDB con Motor
-- [ ] Endpoints `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
-- [ ] JWT con access token (60min) + refresh token (30 días) en cookie HttpOnly
-- [ ] Middleware de autenticación FastAPI (dependency injection)
-- [ ] RBAC: decorador `require_role(roles=[...])`
-- [ ] Página de login y registro en Vue.js
-- [ ] Auth store (Pinia) con interceptor Axios para refresh automático
-- [ ] Guard de rutas en Vue Router
-- [ ] Tests: `test_auth.py` (register, login, token refresh, unauthorized)
+- [x] Scaffold `notification-service/` (Node.js + Express + Bull + Nodemailer + ioredis)
+- [x] Scaffold `admin-panel/` (Angular 17 Standalone + NgRx + Angular Material)
+- [x] Actualizar `docker-compose.yml` con los dos nuevos servicios (:3001, :4200)
+- [x] Añadir rol `PLATFORM_ADMIN` y `require_platform_admin` a FastAPI
+- [x] Crear router `/api/v1/admin/platform/*` (stats, workspaces, users, jobs, notifications)
+- [x] FastAPI publica eventos Redis al canal `"notifications"` tras completar Celery tasks
+- [x] Actualizar CI/CD con jobs para notification-service y admin-panel
+- [x] Actualizar `CLAUDE.md` con convenciones v2
 
-### Fase 2 — Gestión de Documentos (5-6 días)
+### Fase 1 — Auth y Multi-Tenant (4-5 días) ✅ COMPLETADA
 
-- [ ] Modelo `Document` en MongoDB
-- [ ] Endpoint `POST /documents/upload` — multipart, validación de tipo y tamaño
-- [ ] `StorageService` — subida a MinIO/S3 con presigned URLs
-- [ ] Tarea Celery `process_document`:
+- [x] Modelo `User` + `Workspace` en MongoDB con Motor
+- [x] Endpoints `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- [x] JWT con access token (60min) + refresh token (30 días) en cookie HttpOnly
+- [x] Middleware de autenticación FastAPI (dependency injection)
+- [x] RBAC: decorador `require_role(roles=[...])`
+- [x] Página de login y registro en Vue.js
+- [x] Auth store (Pinia) con interceptor Axios para refresh automático
+- [x] Guard de rutas en Vue Router
+- [x] Tests: `test_auth.py` (register, login, token refresh, unauthorized)
+
+### Fase 1-v2 — Notification Service MVP (3-4 días)
+
+- [ ] Redis subscriber ioredis funcional (canal `"notifications"`)
+- [ ] Bull queue con reintentos y backoff exponencial configurado
+- [ ] Nodemailer + SMTP (Mailtrap) conectado y probado
+- [ ] Plantilla base Handlebars + plantillas `document-ready` y `document-error`
+- [ ] Endpoint REST `/notifications` con JWT compartido
+- [ ] Notificación in-app registrada en MongoDB colección `notifications`
+- [ ] Tests Jest: email service, queue service, rutas
+- [ ] Variable de entorno `.env` documentada
+
+### Fase 2 — Gestión de Documentos (5-6 días) ✅ COMPLETADA (backend)
+
+- [x] Modelo `Document` en MongoDB
+- [x] Endpoint `POST /documents/upload` — multipart, validación de tipo y tamaño
+- [x] `StorageService` — subida a MinIO/S3 con presigned URLs
+- [x] Tarea Celery `process_document`:
   - Extracción de texto (PyMuPDF, pandas, python-docx)
   - Chunking con LangChain
   - Generación de embeddings
@@ -947,6 +971,23 @@ jobs:
 - [ ] DocumentUploader con drag & drop y barra de progreso
 - [ ] DocumentStatusBadge con polling hasta READY
 - [ ] Tests: `test_documents.py` (upload, status polling, delete)
+
+### Fase 2-v2 — Angular Admin Panel (5-6 días)
+
+- [x] Setup standalone components + Angular Router con lazy loading
+- [x] Auth: LoginComponent, AuthService, JWT en localStorage, authGuard
+- [x] HTTP interceptors: auth (adjunta token) + error (maneja 401)
+- [x] NgRx store: workspaces slice (actions, reducer, effects, selectors)
+- [x] DashboardComponent con métricas globales y Chart.js (pie chart)
+- [x] WorkspacesComponent: tabla con paginación, acciones (suspender, cambiar plan)
+- [x] UsersComponent: búsqueda global, force logout
+- [x] NotificationsComponent: cola de notificaciones
+- [x] LogsComponent: historial Celery jobs
+- [x] ShellComponent con sidebar Angular Material
+- [x] Tests unitarios reducer (Karma/Jasmine)
+- [x] Tests E2E auth flow (Cypress)
+- [ ] Tests unitarios efectos NgRx con HttpClientTestingModule
+- [ ] Tests E2E workspaces: listar, filtrar, suspender
 
 ### Fase 3 — Salas y WebSocket (4-5 días)
 
@@ -973,26 +1014,29 @@ jobs:
 
 ### Fase 5 — Funcionalidades Avanzadas (4-5 días)
 
-- [ ] Exportar chat a PDF (tarea Celery + ReportLab/WeasyPrint)
+- [ ] Exportar chat a PDF (tarea Celery + ReportLab/WeasyPrint) → evento Redis `export_ready`
 - [ ] Scroll infinito en MessageList (cursor pagination)
-- [ ] Sistema de invitaciones por email (SendGrid/Resend)
+- [ ] Sistema de invitaciones por email (via Notification Service) → evento `workspace_invite`
 - [ ] Gestión de miembros del workspace
 - [ ] Rate limiting por usuario (Redis + slowapi)
 - [ ] Visualizaciones de CSV: tabla interactiva + gráfico básico (Chart.js)
 - [ ] Tags en documentos + filtro por tag
+- [ ] Notification badge en Vue.js (`/notifications/unread-count` del Notification Service)
+- [ ] WebSocket event `notification` recibido en Vue.js y mostrado como toast
 
 ### Fase 6 — Testing, Polish y Deploy (4-5 días)
 
-- [ ] Tests E2E con Playwright: flujo completo (register → upload → chat)
+- [ ] Tests E2E con Playwright (Vue): flujo completo (register → upload → chat)
+- [ ] Tests E2E con Cypress (Angular): login → dashboard → gestión workspace
 - [ ] Cobertura de tests backend ≥ 80%
 - [ ] Variables de entorno de producción en Railway y Vercel
 - [ ] MongoDB Atlas en la nube (tier gratuito M0)
 - [ ] Redis en Railway (o Upstash)
 - [ ] S3 en AWS (tier gratuito) o Cloudflare R2
-- [ ] GitHub Actions CI/CD funcionando
-- [ ] README.md con arquitectura, setup local y demo GIF
+- [ ] GitHub Actions CI/CD funcionando para los 4 servicios
+- [ ] README.md con arquitectura v2, setup local y demo GIF
 
-**Duración total estimada: 4-6 semanas a ritmo de proyecto personal**
+**Duración total estimada v2: 6-8 semanas a ritmo de proyecto personal**
 
 ---
 
@@ -1082,4 +1126,5 @@ La paginación por offset (`LIMIT 20 OFFSET 100`) es problemática en chats: si 
 
 ---
 
-*Documento generado el 2026-06-06 — Juan David Gil Díaz*
+*Documento actualizado el 2026-06-12 — Juan David Gil Díaz*  
+*v2.0: Integración Node.js (Notification Service) + Angular 17 (Admin Panel)*

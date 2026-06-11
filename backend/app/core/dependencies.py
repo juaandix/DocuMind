@@ -54,3 +54,9 @@ def require_role(*roles: UserRole):
         return current_user
 
     return checker
+
+
+async def require_platform_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+    if current_user.role != UserRole.PLATFORM_ADMIN:
+        raise ForbiddenError("Platform admin access required")
+    return current_user
