@@ -43,34 +43,34 @@ async function save() {
 
 <template>
   <div class="p-8 max-w-lg">
-    <h1 class="text-2xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-6">Workspace</h1>
+    <h1 class="text-2xl font-semibold text-[#1d1d1f] mb-6">Workspace</h1>
 
     <div v-if="!wsStore.workspace" class="flex justify-center py-20">
       <div class="w-6 h-6 border-2 border-[#0071e3]/30 border-t-[#0071e3] rounded-full animate-spin"></div>
     </div>
 
     <template v-else>
-      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-5 space-y-4 mb-4">
-        <h2 class="text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider">General</h2>
+      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 space-y-4 mb-4">
+        <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">General</h2>
 
         <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider mb-1.5">Workspace Name</label>
+          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Workspace Name</label>
           <input v-model="name" type="text" :disabled="!canEdit"
-            class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff] disabled:opacity-40 disabled:cursor-not-allowed"
+            class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] disabled:opacity-40 disabled:cursor-not-allowed"
           />
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider mb-1.5">Plan</label>
+          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Plan</label>
           <span :class="[
             'inline-block text-xs font-medium px-2.5 py-1 rounded-full',
             wsStore.workspace.plan === 'PRO'
-              ? 'bg-[#af52de]/[0.1] text-[#7a2e9c] dark:text-[#bf5af2]'
-              : 'bg-black/[0.04] dark:bg-white/[0.06] text-[#6e6e73] dark:text-[#98989d]'
+              ? 'bg-[#af52de]/[0.1] text-[#7a2e9c]'
+              : 'bg-black/[0.04] text-[#6e6e73]'
           ]">{{ wsStore.workspace.plan }}</span>
         </div>
 
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
         <div v-if="canEdit" class="flex items-center gap-3 pt-1">
           <button @click="save" :disabled="saving"
@@ -82,16 +82,16 @@ async function save() {
       </div>
 
       <!-- Storage -->
-      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-5 space-y-3">
+      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 space-y-3">
         <div class="flex items-center justify-between">
-          <h2 class="text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider">Storage</h2>
-          <span :class="['text-xs font-medium', storagePercent > 85 ? 'text-red-500' : 'text-[#6e6e73] dark:text-[#98989d]']">{{ storagePercent }}%</span>
+          <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">Storage</h2>
+          <span :class="['text-xs font-medium', storagePercent > 85 ? 'text-red-500' : 'text-[#6e6e73]']">{{ storagePercent }}%</span>
         </div>
-        <div class="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
           <div :class="['h-full rounded-full transition-all', storagePercent > 85 ? 'bg-red-500' : 'bg-[#0071e3]']"
             :style="{ width: `${storagePercent}%` }"></div>
         </div>
-        <div class="flex justify-between text-xs text-[#6e6e73] dark:text-[#98989d]">
+        <div class="flex justify-between text-xs text-[#6e6e73]">
           <span>{{ formatBytes(wsStore.workspace.storage_used_bytes) }} used</span>
           <span v-if="storagePercent > 85" class="text-red-500 font-medium">Almost full</span>
           <span v-else>{{ formatBytes(wsStore.workspace.storage_limit_bytes) }} total</span>

@@ -15,10 +15,10 @@ const savingTags = ref(false)
 const deleting = ref(false)
 
 const statusConfig: Record<DocumentStatus, { label: string; cls: string }> = {
-  UPLOADING: { label: 'Uploading', cls: 'bg-[#0071e3]/[0.08] text-[#0071e3] dark:text-[#2997ff]' },
-  PROCESSING: { label: 'Processing', cls: 'bg-[#ff9f0a]/[0.1] text-[#b86d00] dark:text-[#ffd60a]' },
-  READY: { label: 'Ready', cls: 'bg-[#34c759]/[0.1] text-[#248a3d] dark:text-[#30d158]' },
-  ERROR: { label: 'Error', cls: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' },
+  UPLOADING: { label: 'Uploading', cls: 'bg-[#0071e3]/[0.08] text-[#0071e3]' },
+  PROCESSING: { label: 'Processing', cls: 'bg-[#ff9f0a]/[0.1] text-[#b86d00]' },
+  READY: { label: 'Ready', cls: 'bg-[#34c759]/[0.1] text-[#248a3d]' },
+  ERROR: { label: 'Error', cls: 'bg-red-50 text-red-600' },
 }
 
 onMounted(async () => {
@@ -85,65 +85,65 @@ function formatDate(iso: string | null) {
 
     <template v-else-if="doc">
       <div class="flex items-center gap-2 mb-6">
-        <router-link to="/documents" class="text-[#6e6e73] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors">
+        <router-link to="/documents" class="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </router-link>
-        <h1 class="text-xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">{{ doc.original_name }}</h1>
+        <h1 class="text-xl font-semibold text-[#1d1d1f] truncate">{{ doc.original_name }}</h1>
       </div>
 
       <div v-if="doc.status === 'PROCESSING'" class="mb-4 flex items-center gap-3 bg-[#ff9f0a]/[0.08] border border-[#ff9f0a]/30 rounded-xl px-4 py-3">
         <div class="w-2 h-2 rounded-full bg-[#ff9f0a] animate-pulse flex-shrink-0"></div>
-        <p class="text-sm text-[#b86d00] dark:text-[#ffd60a]">Processing — chunks will be ready shortly</p>
+        <p class="text-sm text-[#b86d00]">Processing — chunks will be ready shortly</p>
       </div>
-      <div v-if="doc.status === 'ERROR'" class="mb-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-4 py-3">
-        <p class="text-sm font-medium text-red-700 dark:text-red-400">Processing failed</p>
+      <div v-if="doc.status === 'ERROR'" class="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <p class="text-sm font-medium text-red-700">Processing failed</p>
         <p v-if="doc.error_message" class="text-xs text-red-500 mt-0.5">{{ doc.error_message }}</p>
       </div>
 
       <!-- Info grid -->
-      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-5 mb-4">
-        <h2 class="text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider mb-4">Document Info</h2>
+      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 mb-4">
+        <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-4">Document Info</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Status</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Status</p>
             <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', statusConfig[doc.status].cls]">
               {{ statusConfig[doc.status].label }}
             </span>
           </div>
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Size</p>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{{ formatSize(doc.size_bytes) }}</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Size</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">{{ formatSize(doc.size_bytes) }}</p>
           </div>
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Type</p>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{{ doc.mime_type }}</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Type</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.mime_type }}</p>
           </div>
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Pages</p>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{{ doc.page_count ?? '—' }}</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Pages</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.page_count ?? '—' }}</p>
           </div>
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Chunks</p>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{{ doc.chunk_count ?? '—' }}</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Chunks</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.chunk_count ?? '—' }}</p>
           </div>
           <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1.5">Processed</p>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{{ formatDate(doc.processed_at) }}</p>
+            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Processed</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">{{ formatDate(doc.processed_at) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Tags -->
-      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-5 mb-4">
+      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 mb-4">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider">Tags</h2>
+          <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">Tags</h2>
           <span v-if="savingTags" class="text-xs text-[#6e6e73]">Saving…</span>
         </div>
         <div class="flex flex-wrap gap-1.5 mb-4 min-h-[2rem]">
           <span v-for="tag in tags" :key="tag"
-            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-[#0071e3]/[0.08] dark:bg-[#2997ff]/[0.12] text-[#0071e3] dark:text-[#2997ff]">
+            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-[#0071e3]/[0.08] text-[#0071e3]">
             {{ tag }}
             <button @click="removeTag(tag)" class="hover:text-red-500 transition-colors ml-0.5">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -151,11 +151,11 @@ function formatDate(iso: string | null) {
               </svg>
             </button>
           </span>
-          <span v-if="tags.length === 0" class="text-xs text-[#6e6e73] dark:text-[#98989d]">No tags yet</span>
+          <span v-if="tags.length === 0" class="text-xs text-[#6e6e73]">No tags yet</span>
         </div>
         <div class="flex gap-2">
           <input v-model="tagInput" @keydown.enter.prevent="addTag" type="text" placeholder="Add a tag…"
-            class="flex-1 rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3 py-2 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
+            class="flex-1 rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3 py-2 text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
           />
           <button @click="addTag"
             class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors">
@@ -165,12 +165,12 @@ function formatDate(iso: string | null) {
       </div>
 
       <!-- Danger zone -->
-      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-5 border border-red-200/50 dark:border-red-500/20">
-        <h2 class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-4">Danger Zone</h2>
+      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 border border-red-200/50">
+        <h2 class="text-xs font-semibold text-red-600 uppercase tracking-wider mb-4">Danger Zone</h2>
         <div class="flex items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">Delete this document</p>
-            <p class="text-xs text-[#6e6e73] dark:text-[#98989d] mt-0.5">This will also remove it from all chat rooms.</p>
+            <p class="text-sm font-medium text-[#1d1d1f]">Delete this document</p>
+            <p class="text-xs text-[#6e6e73] mt-0.5">This will also remove it from all chat rooms.</p>
           </div>
           <button @click="handleDelete" :disabled="deleting"
             class="flex-shrink-0 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg px-4 py-2 disabled:opacity-50 transition-colors">

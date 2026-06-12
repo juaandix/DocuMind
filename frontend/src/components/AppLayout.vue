@@ -2,12 +2,10 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
-import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const { theme, toggle } = useTheme()
 
 const navMain = [
   { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
@@ -37,18 +35,18 @@ const initials = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] overflow-hidden">
+  <div class="flex h-screen bg-[#f5f5f7] overflow-hidden">
     <!-- Sidebar -->
-    <aside class="w-56 flex-shrink-0 bg-white/80 dark:bg-[#1c1c1e]/90 backdrop-blur-xl border-r border-black/[0.08] dark:border-white/[0.08] flex flex-col">
+    <aside class="w-56 flex-shrink-0 bg-white/80 backdrop-blur-xl border-r border-black/[0.08] flex flex-col">
       <!-- Logo -->
-      <div class="h-14 flex items-center px-5 border-b border-black/[0.06] dark:border-white/[0.06]">
+      <div class="h-14 flex items-center px-5 border-b border-black/[0.06]">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-[#0071e3] flex items-center justify-center">
             <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
           </div>
-          <span class="text-sm font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">DocuMind</span>
+          <span class="text-sm font-semibold text-[#1d1d1f] tracking-tight">DocuMind</span>
         </div>
       </div>
 
@@ -59,8 +57,8 @@ const initials = computed(() => {
             :class="[
               'flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors',
               isActive(item.to)
-                ? 'bg-[#0071e3]/[0.12] dark:bg-[#2997ff]/[0.15] text-[#0071e3] dark:text-[#2997ff] font-medium'
-                : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] font-normal'
+                ? 'bg-[#0071e3]/[0.12] text-[#0071e3] font-medium'
+                : 'text-[#1d1d1f] hover:bg-black/[0.04] font-normal'
             ]"
           >
             <svg v-if="item.icon === 'grid'" class="w-4 h-4 flex-shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -78,7 +76,7 @@ const initials = computed(() => {
         </template>
 
         <div class="my-3 px-3">
-          <p class="text-[10px] font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-widest mb-1">Settings</p>
+          <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1">Settings</p>
         </div>
 
         <template v-for="item in navSettings" :key="item.to">
@@ -86,8 +84,8 @@ const initials = computed(() => {
             :class="[
               'flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors',
               isActive(item.to)
-                ? 'bg-[#0071e3]/[0.12] dark:bg-[#2997ff]/[0.15] text-[#0071e3] dark:text-[#2997ff] font-medium'
-                : 'text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] font-normal'
+                ? 'bg-[#0071e3]/[0.12] text-[#0071e3] font-medium'
+                : 'text-[#1d1d1f] hover:bg-black/[0.04] font-normal'
             ]"
           >
             <svg v-if="item.icon === 'building'" class="w-4 h-4 flex-shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -105,28 +103,17 @@ const initials = computed(() => {
       </nav>
 
       <!-- Footer -->
-      <div class="border-t border-black/[0.06] dark:border-white/[0.06] p-3 space-y-1">
-        <button @click="toggle"
-          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#6e6e73] dark:text-[#98989d] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] rounded-lg transition-colors">
-          <svg v-if="theme === 'dark'" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-          </svg>
-          <svg v-else class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-          </svg>
-          {{ theme === 'dark' ? 'Light mode' : 'Dark mode' }}
-        </button>
-
+      <div class="border-t border-black/[0.06] p-3">
         <!-- User row -->
-        <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-default">
+        <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-black/[0.04] cursor-default">
           <div class="w-7 h-7 rounded-full bg-[#0071e3] flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
             {{ initials }}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate">{{ auth.user?.full_name }}</p>
-            <p class="text-[10px] text-[#6e6e73] dark:text-[#98989d] truncate">{{ auth.user?.role }}</p>
+            <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ auth.user?.full_name }}</p>
+            <p class="text-[10px] text-[#6e6e73] truncate">{{ auth.user?.role }}</p>
           </div>
-          <button @click="handleLogout" class="p-1 text-[#6e6e73] dark:text-[#98989d] hover:text-red-500 transition-colors" title="Sign out">
+          <button @click="handleLogout" class="p-1 text-[#6e6e73] hover:text-red-500 transition-colors" title="Sign out">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
             </svg>
@@ -136,7 +123,7 @@ const initials = computed(() => {
     </aside>
 
     <!-- Main content -->
-    <main class="flex-1 overflow-y-auto bg-[#f5f5f7] dark:bg-[#1d1d1f]">
+    <main class="flex-1 overflow-y-auto bg-[#f5f5f7]">
       <router-view />
     </main>
   </div>
