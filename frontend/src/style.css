@@ -1,4 +1,17 @@
 @import "tailwindcss";
 
-/* Class-based dark mode — applied to <html class="dark"> */
+/* Class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  /* Neubrutalism: fast snappy transitions for transforms/shadows only */
+  button, a, input, textarea, select, label {
+    transition-property: transform, box-shadow, background-color, border-color, color;
+    transition-duration: 80ms;
+    transition-timing-function: ease-out;
+  }
+}
