@@ -23,7 +23,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f5f5f7] flex items-center justify-center p-6">
+  <div class="min-h-screen bg-[#e8e8ed] flex items-center justify-center p-6">
     <div class="w-full max-w-sm">
       <div class="flex flex-col items-center mb-8">
         <div class="w-14 h-14 rounded-2xl bg-[#0071e3] flex items-center justify-center shadow-[0_8px_24px_rgba(0,113,227,0.35)] mb-4">
