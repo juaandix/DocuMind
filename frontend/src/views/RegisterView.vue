@@ -5,15 +5,17 @@ import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
 const auth = useAuthStore()
-const form = ref({ email: '', password: '', full_name: '', workspace_name: '' })
-const error = ref('')
+const fullName = ref('')
+const email = ref('')
+const password = ref('')
+const workspaceName = ref('')
 const loading = ref(false)
+const error = ref('')
 
-async function submit() {
-  error.value = ''
-  loading.value = true
+async function handleRegister() {
+  loading.value = true; error.value = ''
   try {
-    await auth.register(form.value)
+    await auth.register({ full_name: fullName.value, email: email.value, password: password.value, workspace_name: workspaceName.value })
     router.push('/dashboard')
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Registration failed'
@@ -22,59 +24,59 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-amber-50 dark:bg-neutral-950 p-6">
-    <div class="pointer-events-none fixed inset-0" style="background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 40px 40px;" aria-hidden="true"></div>
+  <div class="min-h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] flex items-center justify-center p-6">
+    <div class="w-full max-w-sm">
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-14 h-14 rounded-2xl bg-[#0071e3] flex items-center justify-center shadow-[0_8px_24px_rgba(0,113,227,0.35)] mb-4">
+          <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Create your account</h1>
+        <p class="text-sm text-[#6e6e73] dark:text-[#98989d] mt-1">Start your DocuMind workspace</p>
+      </div>
 
-    <div class="relative w-full max-w-sm">
-      <div class="absolute inset-0 translate-x-2 translate-y-2 bg-black dark:bg-yellow-400"></div>
-
-      <div class="relative bg-white dark:bg-neutral-900 border-2 border-black dark:border-white p-8">
-        <div class="mb-6">
-          <div class="inline-block bg-black dark:bg-yellow-400 px-3 py-1.5 mb-4">
-            <span class="text-xs font-black tracking-widest uppercase text-yellow-400 dark:text-black">DOCU</span><span class="text-xs font-black tracking-widest uppercase text-white dark:text-black">MIND</span>
-          </div>
-          <h1 class="text-3xl font-black uppercase tracking-tight text-black dark:text-white leading-none">Create<br/>Workspace.</h1>
-          <p class="text-sm font-medium text-black/50 dark:text-white/50 mt-2">Start analyzing documents with AI</p>
+      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.4)] p-6">
+        <div v-if="error" class="mb-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl px-4 py-3">
+          {{ error }}
         </div>
 
-        <form @submit.prevent="submit" class="space-y-3">
-          <div v-for="field in [
-            { key: 'full_name', label: 'Full name', type: 'text', placeholder: 'Jane Smith' },
-            { key: 'email', label: 'Email', type: 'email', placeholder: 'you@company.com' },
-            { key: 'password', label: 'Password', type: 'password', placeholder: 'Min 8 characters' },
-            { key: 'workspace_name', label: 'Workspace', type: 'text', placeholder: 'Acme Corp' },
-          ]" :key="field.key">
-            <label class="block text-xs font-black text-black dark:text-white mb-1 uppercase tracking-widest">{{ field.label }}</label>
-            <input
-              v-model="(form as Record<string, string>)[field.key]"
-              :type="field.type"
-              :placeholder="field.placeholder"
-              required
-              class="w-full border-2 border-black dark:border-white bg-white dark:bg-neutral-800 px-4 py-2.5 text-sm font-medium text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:shadow-[4px_4px_0_0_#000] dark:focus:shadow-[4px_4px_0_0_#fff] focus:-translate-x-0.5 focus:-translate-y-0.5"
+        <form @submit.prevent="handleRegister" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Full name</label>
+            <input v-model="fullName" type="text" placeholder="Jane Appleseed" autocomplete="name" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
             />
           </div>
-
-          <div v-if="error" class="border-2 border-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            <p class="text-sm font-bold text-red-700 dark:text-red-400">{{ error }}</p>
+          <div>
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Email</label>
+            <input v-model="email" type="email" placeholder="you@example.com" autocomplete="email" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
+            />
           </div>
-
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full bg-yellow-400 text-black font-black text-sm uppercase tracking-widest px-6 py-3.5 border-2 border-black shadow-[4px_4px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed mt-1"
-          >
-            {{ loading ? 'Creating...' : 'Create Workspace →' }}
+          <div>
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Password</label>
+            <input v-model="password" type="password" placeholder="Min. 8 characters" autocomplete="new-password" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Workspace name</label>
+            <input v-model="workspaceName" type="text" placeholder="Acme Corp" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
+            />
+          </div>
+          <button type="submit" :disabled="loading"
+            class="w-full mt-1 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0068d0] disabled:opacity-60 text-white text-sm font-medium rounded-lg py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
+            {{ loading ? 'Creating account…' : 'Create account' }}
           </button>
         </form>
-
-        <p class="mt-5 text-sm font-medium text-black/60 dark:text-white/60">
-          Have an account?
-          <router-link to="/login" class="font-black text-black dark:text-yellow-400 underline underline-offset-2">Sign in</router-link>
-        </p>
       </div>
+
+      <p class="text-center text-sm text-[#6e6e73] dark:text-[#98989d] mt-5">
+        Already have an account?
+        <router-link to="/login" class="text-[#0071e3] dark:text-[#2997ff] hover:underline font-medium">Sign in</router-link>
+      </p>
     </div>
   </div>
 </template>

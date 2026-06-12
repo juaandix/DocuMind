@@ -28,48 +28,45 @@ const initials = () => (auth.user?.full_name ?? '?').split(' ').map(n => n[0]).j
 
 <template>
   <div class="p-8 max-w-lg">
-    <h1 class="text-3xl font-black uppercase tracking-tight text-black dark:text-white mb-6">Profile</h1>
+    <h1 class="text-2xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-6">Profile</h1>
 
-    <div class="relative">
-      <div class="absolute inset-0 translate-x-2 translate-y-2 bg-black dark:bg-yellow-400"></div>
-      <div class="relative bg-white dark:bg-neutral-900 border-2 border-black dark:border-white p-6 space-y-5">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 bg-black dark:bg-yellow-400 border-2 border-black shadow-[4px_4px_0_0_#facc15] dark:shadow-[4px_4px_0_0_#000] flex items-center justify-center text-2xl font-black text-yellow-400 dark:text-black">
-            {{ initials() }}
-          </div>
-          <div>
-            <p class="font-black text-black dark:text-white uppercase">{{ auth.user?.full_name }}</p>
-            <p class="text-sm font-medium text-black/50 dark:text-white/50">{{ auth.user?.email }}</p>
-            <span class="inline-block mt-1.5 text-[10px] font-black uppercase tracking-widest bg-yellow-400 text-black border border-black px-2 py-0.5">
-              {{ auth.user?.role }}
-            </span>
-          </div>
+    <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-6 space-y-5">
+      <div class="flex items-center gap-4 pb-5 border-b border-black/[0.06] dark:border-white/[0.06]">
+        <div class="w-14 h-14 rounded-full bg-[#0071e3] flex items-center justify-center text-xl font-semibold text-white shadow-[0_4px_12px_rgba(0,113,227,0.3)]">
+          {{ initials() }}
         </div>
-
-        <div class="border-t-2 border-black/10 dark:border-white/10 pt-5 space-y-4">
-          <div>
-            <label class="block text-[10px] font-black uppercase tracking-widest text-black/50 dark:text-white/50 mb-1.5">Full Name</label>
-            <input v-model="fullName" type="text"
-              class="w-full border-2 border-black dark:border-white bg-white dark:bg-neutral-800 px-4 py-2.5 text-sm font-medium text-black dark:text-white focus:outline-none focus:shadow-[4px_4px_0_0_#000] dark:focus:shadow-[4px_4px_0_0_#fff] focus:-translate-x-0.5 focus:-translate-y-0.5"
-            />
-          </div>
-          <div>
-            <label class="block text-[10px] font-black uppercase tracking-widest text-black/50 dark:text-white/50 mb-1.5">Email</label>
-            <input :value="auth.user?.email" type="email" disabled
-              class="w-full border-2 border-black/20 dark:border-white/20 bg-black/5 dark:bg-white/5 px-4 py-2.5 text-sm font-medium text-black/40 dark:text-white/40 cursor-not-allowed"
-            />
-          </div>
+        <div>
+          <p class="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{{ auth.user?.full_name }}</p>
+          <p class="text-sm text-[#6e6e73] dark:text-[#98989d]">{{ auth.user?.email }}</p>
+          <span class="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#0071e3]/[0.08] text-[#0071e3] dark:text-[#2997ff]">
+            {{ auth.user?.role }}
+          </span>
         </div>
+      </div>
 
-        <p v-if="error" class="text-sm font-bold text-red-700 dark:text-red-400">{{ error }}</p>
-
-        <div class="flex items-center gap-3">
-          <button @click="save" :disabled="saving || !fullName.trim()"
-            class="bg-yellow-400 text-black font-black text-xs uppercase tracking-widest px-5 py-2.5 border-2 border-black shadow-[4px_4px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
-          <span v-if="saved" class="text-sm font-black uppercase text-green-700 dark:text-green-400">✓ Saved</span>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider mb-1.5">Full Name</label>
+          <input v-model="fullName" type="text"
+            class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
+          />
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-[#6e6e73] dark:text-[#98989d] uppercase tracking-wider mb-1.5">Email</label>
+          <input :value="auth.user?.email" type="email" disabled
+            class="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] px-3.5 py-2.5 text-sm text-[#6e6e73] dark:text-[#98989d] cursor-not-allowed"
+          />
+        </div>
+      </div>
+
+      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+
+      <div class="flex items-center gap-3 pt-1">
+        <button @click="save" :disabled="saving || !fullName.trim()"
+          class="bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
+          {{ saving ? 'Saving…' : 'Save Changes' }}
+        </button>
+        <span v-if="saved" class="text-sm text-[#34c759] font-medium">✓ Saved</span>
       </div>
     </div>
   </div>

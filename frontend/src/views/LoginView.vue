@@ -5,98 +5,65 @@ import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
 const auth = useAuthStore()
-
 const email = ref('')
 const password = ref('')
-const error = ref('')
 const loading = ref(false)
+const error = ref('')
 
-async function submit() {
-  error.value = ''
-  loading.value = true
+async function handleLogin() {
+  if (!email.value || !password.value) return
+  loading.value = true; error.value = ''
   try {
     await auth.login(email.value, password.value)
     router.push('/dashboard')
   } catch (e: unknown) {
-    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Invalid credentials'
-  } finally {
-    loading.value = false
-  }
+    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Invalid email or password'
+  } finally { loading.value = false }
 }
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-amber-50 dark:bg-neutral-950 p-6">
-    <!-- Decorative grid lines (neubrutalist background detail) -->
-    <div class="pointer-events-none fixed inset-0" style="background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 40px 40px;" aria-hidden="true"></div>
+  <div class="min-h-screen bg-[#f5f5f7] dark:bg-[#1d1d1f] flex items-center justify-center p-6">
+    <div class="w-full max-w-sm">
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-14 h-14 rounded-2xl bg-[#0071e3] flex items-center justify-center shadow-[0_8px_24px_rgba(0,113,227,0.35)] mb-4">
+          <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">Sign in to DocuMind</h1>
+        <p class="text-sm text-[#6e6e73] dark:text-[#98989d] mt-1">Your intelligent document workspace</p>
+      </div>
 
-    <div class="relative w-full max-w-sm">
-      <!-- Offset block behind card (neubrutalist stack effect) -->
-      <div class="absolute inset-0 translate-x-2 translate-y-2 bg-black dark:bg-yellow-400"></div>
-
-      <!-- Main card -->
-      <div class="relative bg-white dark:bg-neutral-900 border-2 border-black dark:border-white p-8">
-        <!-- Logo -->
-        <div class="mb-8">
-          <div class="inline-block bg-black dark:bg-yellow-400 px-3 py-1.5 mb-4">
-            <span class="text-xs font-black tracking-widest uppercase text-yellow-400 dark:text-black">DOCU</span><span class="text-xs font-black tracking-widest uppercase text-white dark:text-black">MIND</span>
-          </div>
-          <h1 class="text-3xl font-black uppercase tracking-tight text-black dark:text-white leading-none">Welcome<br/>Back.</h1>
-          <p class="text-sm font-medium text-black/50 dark:text-white/50 mt-2">Sign in to your workspace</p>
+      <div class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.4)] p-6">
+        <div v-if="error" class="mb-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl px-4 py-3">
+          {{ error }}
         </div>
 
-        <form @submit.prevent="submit" class="space-y-4">
+        <form @submit.prevent="handleLogin" class="space-y-3">
           <div>
-            <label class="block text-xs font-black text-black dark:text-white mb-1.5 uppercase tracking-widest">Email</label>
-            <input
-              v-model="email"
-              type="email"
-              required
-              placeholder="you@company.com"
-              class="w-full border-2 border-black dark:border-white bg-white dark:bg-neutral-800 px-4 py-3 text-sm font-medium text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:shadow-[4px_4px_0_0_#000] dark:focus:shadow-[4px_4px_0_0_#fff] focus:-translate-x-0.5 focus:-translate-y-0.5"
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Email</label>
+            <input v-model="email" type="email" placeholder="you@example.com" autocomplete="email" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
             />
           </div>
           <div>
-            <label class="block text-xs font-black text-black dark:text-white mb-1.5 uppercase tracking-widest">Password</label>
-            <input
-              v-model="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              class="w-full border-2 border-black dark:border-white bg-white dark:bg-neutral-800 px-4 py-3 text-sm font-medium text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none focus:shadow-[4px_4px_0_0_#000] dark:focus:shadow-[4px_4px_0_0_#fff] focus:-translate-x-0.5 focus:-translate-y-0.5"
+            <label class="block text-xs font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Password</label>
+            <input v-model="password" type="password" placeholder="••••••••" autocomplete="current-password" required
+              class="w-full rounded-lg border border-black/[0.12] dark:border-white/[0.1] bg-[#f5f5f7] dark:bg-[#3a3a3c] px-3.5 py-2.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] dark:focus:border-[#2997ff]"
             />
           </div>
-
-          <div v-if="error" class="border-2 border-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            <p class="text-sm font-bold text-red-700 dark:text-red-400">{{ error }}</p>
-          </div>
-
-          <button
-            type="submit"
-            :disabled="loading"
-            class="w-full bg-yellow-400 dark:bg-yellow-400 text-black font-black text-sm uppercase tracking-widest px-6 py-3.5 border-2 border-black dark:border-black shadow-[4px_4px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          >
-            <span v-if="loading" class="flex items-center justify-center gap-2">
-              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-              </svg>
-              Signing in...
-            </span>
-            <span v-else>Sign In →</span>
+          <button type="submit" :disabled="loading"
+            class="w-full mt-1 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#0068d0] disabled:opacity-60 text-white text-sm font-medium rounded-lg py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
+            {{ loading ? 'Signing in…' : 'Sign in' }}
           </button>
         </form>
-
-        <p class="mt-6 text-sm font-medium text-black/60 dark:text-white/60">
-          No account?
-          <router-link to="/register" class="font-black text-black dark:text-yellow-400 underline underline-offset-2 hover:text-yellow-600 dark:hover:text-yellow-300">
-            Create workspace
-          </router-link>
-        </p>
       </div>
+
+      <p class="text-center text-sm text-[#6e6e73] dark:text-[#98989d] mt-5">
+        Don't have an account?
+        <router-link to="/register" class="text-[#0071e3] dark:text-[#2997ff] hover:underline font-medium">Create one</router-link>
+      </p>
     </div>
   </div>
 </template>

@@ -34,65 +34,62 @@ async function startUpload(file: File) {
 
 <template>
   <div class="p-8 max-w-2xl">
-    <div class="flex items-center gap-3 mb-8">
-      <router-link to="/documents" class="text-black dark:text-white hover:text-yellow-600 transition-colors">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+    <div class="flex items-center gap-2 mb-6">
+      <router-link to="/documents" class="text-[#6e6e73] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </router-link>
-      <h1 class="text-3xl font-black uppercase tracking-tight text-black dark:text-white">Upload Document</h1>
+      <h1 class="text-xl font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Upload Document</h1>
     </div>
 
-    <div v-if="uploadedDocId" class="relative">
-      <div class="absolute inset-0 translate-x-2 translate-y-2 bg-green-500"></div>
-      <div class="relative bg-white dark:bg-neutral-900 border-2 border-black dark:border-white p-8 text-center">
-        <div class="w-16 h-16 bg-green-500 border-2 border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-        <h2 class="text-xl font-black uppercase text-black dark:text-white mb-2">Upload Successful!</h2>
-        <p class="text-sm font-medium text-black/60 dark:text-white/60 mb-6">Document is being processed. This may take a moment.</p>
-        <div class="flex justify-center gap-3">
-          <router-link :to="`/documents/${uploadedDocId}`"
-            class="bg-yellow-400 text-black font-black text-xs uppercase tracking-widest px-5 py-2.5 border-2 border-black shadow-[4px_4px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
-            View Document
-          </router-link>
-          <button @click="uploadedDocId = null; progress = 0"
-            class="bg-white dark:bg-neutral-900 text-black dark:text-white font-black text-xs uppercase tracking-widest px-5 py-2.5 border-2 border-black dark:border-white shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000] dark:hover:shadow-[6px_6px_0_0_#fff] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
-            Upload Another
-          </button>
-        </div>
+    <div v-if="uploadedDocId" class="bg-white dark:bg-[#2c2c2e] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none p-10 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#34c759]/[0.12] flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-lg font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">Upload successful</h2>
+      <p class="text-sm text-[#6e6e73] dark:text-[#98989d] mb-6">Your document is being processed. This may take a moment.</p>
+      <div class="flex justify-center gap-3">
+        <router-link :to="`/documents/${uploadedDocId}`"
+          class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-5 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
+          View document
+        </router-link>
+        <button @click="uploadedDocId = null; progress = 0"
+          class="bg-[#f5f5f7] dark:bg-[#3a3a3c] hover:bg-gray-200 dark:hover:bg-[#48484a] text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-medium rounded-lg px-5 py-2.5 transition-colors">
+          Upload another
+        </button>
       </div>
     </div>
 
-    <div v-else class="space-y-5">
+    <div v-else class="space-y-4">
       <div @dragover.prevent="dragActive = true" @dragleave.prevent="dragActive = false" @drop.prevent="onDrop" @click="fileInput?.click()"
         :class="[
-          'border-4 border-dashed p-14 text-center cursor-pointer transition-all',
-          dragActive ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : 'border-black dark:border-white hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-neutral-800',
+          'rounded-2xl border-2 border-dashed p-16 text-center cursor-pointer transition-all',
+          dragActive ? 'border-[#0071e3] bg-[#0071e3]/[0.04] dark:bg-[#2997ff]/[0.06]' : 'border-black/[0.12] dark:border-white/[0.12] hover:border-[#0071e3] hover:bg-[#0071e3]/[0.02] dark:hover:border-[#2997ff]',
           uploading ? 'pointer-events-none opacity-60' : ''
         ]">
         <input ref="fileInput" type="file" :accept="ACCEPTED" class="hidden" @change="onFileChange" />
         <div v-if="!uploading">
-          <div class="w-16 h-16 bg-black dark:bg-yellow-400 border-2 border-black shadow-[6px_6px_0_0_#facc15] dark:shadow-[6px_6px_0_0_#000] flex items-center justify-center mx-auto mb-5">
-            <svg class="w-8 h-8 text-yellow-400 dark:text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <div class="w-14 h-14 rounded-2xl bg-[#0071e3]/[0.08] dark:bg-[#2997ff]/[0.1] flex items-center justify-center mx-auto mb-4">
+            <svg class="w-7 h-7 text-[#0071e3] dark:text-[#2997ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
             </svg>
           </div>
-          <p class="text-lg font-black uppercase text-black dark:text-white">Drop your file here</p>
-          <p class="text-sm font-bold text-black/50 dark:text-white/50 mt-1">or <span class="underline">click to browse</span></p>
-          <p class="text-xs font-bold uppercase text-black/30 dark:text-white/30 mt-3 tracking-widest">PDF · DOCX · TXT · MD — max 50 MB</p>
+          <p class="text-base font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">Drop your file here</p>
+          <p class="text-sm text-[#6e6e73] dark:text-[#98989d] mt-1">or <span class="text-[#0071e3] dark:text-[#2997ff]">browse to upload</span></p>
+          <p class="text-xs text-[#6e6e73] dark:text-[#98989d] mt-3">PDF · DOCX · TXT · MD — max 50 MB</p>
         </div>
         <div v-else class="space-y-4">
-          <div class="w-12 h-12 border-4 border-black dark:border-white border-t-yellow-400 dark:border-t-yellow-400 rounded-full animate-spin mx-auto"></div>
-          <p class="text-sm font-black uppercase text-black dark:text-white tracking-widest">Uploading...</p>
-          <div class="h-2 bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 max-w-xs mx-auto overflow-hidden">
-            <div class="h-full bg-yellow-400 transition-all" :style="{ width: `${progress}%` }"></div>
+          <div class="w-10 h-10 border-2 border-[#0071e3]/20 border-t-[#0071e3] rounded-full animate-spin mx-auto"></div>
+          <p class="text-sm font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">Uploading…</p>
+          <div class="h-1.5 bg-black/[0.06] dark:bg-white/10 rounded-full max-w-xs mx-auto overflow-hidden">
+            <div class="h-full rounded-full bg-[#0071e3] transition-all" :style="{ width: `${progress}%` }"></div>
           </div>
         </div>
       </div>
-      <p v-if="error" class="text-sm font-bold text-red-700 dark:text-red-400 border-2 border-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3">{{ error }}</p>
+      <p v-if="error" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-4 py-3">{{ error }}</p>
     </div>
   </div>
 </template>
