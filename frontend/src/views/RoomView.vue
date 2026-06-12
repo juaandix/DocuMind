@@ -20,6 +20,11 @@ const exporting = ref(false)
 const exportTaskId = ref<string | null>(null)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
+// Document management in sidebar
+const editingDocs = ref(false)
+const pendingDocIds = ref<string[]>([])
+const savingDocs = ref(false)
+
 onMounted(async () => {
   await Promise.all([roomsStore.fetchRooms(), docsStore.fetchDocuments(), roomsStore.fetchMessages(roomId.value)])
   const found = roomsStore.rooms.find(r => r.id === roomId.value)
@@ -75,6 +80,31 @@ const room = computed(() => roomsStore.activeRoom)
 const roomDocs = computed(() =>
   (room.value?.document_ids ?? []).map(id => docsStore.documents.find(d => d.id === id)).filter(Boolean)
 )
+const readyDocs = computed(() => docsStore.documents.filter(d => d.status === 'READY'))
+
+function startEditDocs() {
+  pendingDocIds.value = [...(room.value?.document_ids ?? [])]
+  editingDocs.value = true
+}
+
+function cancelEditDocs() { editingDocs.value = false }
+
+function togglePendingDoc(id: string) {
+  if (pendingDocIds.value.includes(id)) pendingDocIds.value = pendingDocIds.value.filter(i => i !== id)
+  else pendingDocIds.value = [...pendingDocIds.value, id]
+}
+
+async function saveDocChanges() {
+  savingDocs.value = true
+  try {
+    const { roomsService } = await import('@/services/rooms.service')
+    const updated = await roomsService.update(roomId.value, { document_ids: pendingDocIds.value })
+    roomsStore.activeRoom = updated
+    const idx = roomsStore.rooms.findIndex(r => r.id === roomId.value)
+    if (idx >= 0) roomsStore.rooms[idx] = updated
+    editingDocs.value = false
+  } finally { savingDocs.value = false }
+}
 
 function renderContent(text: string): string {
   return text
@@ -244,19 +274,48 @@ function renderContent(text: string): string {
           </div>
 
           <div>
-            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-[#6e6e73] mb-2">Documents</h3>
-            <div v-if="roomDocs.length === 0" class="text-xs text-[#6e6e73]">None attached</div>
-            <div v-for="doc in roomDocs" :key="doc!.id" class="flex items-start gap-2 py-1.5">
-              <div class="w-6 h-6 rounded-lg bg-[#0071e3]/[0.08] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg class="w-3 h-3 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ doc!.original_name }}</p>
-                <p class="text-[10px] text-[#6e6e73]">{{ doc!.chunk_count ?? '—' }} chunks</p>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-[#6e6e73]">Documents</h3>
+              <button v-if="!editingDocs" @click="startEditDocs"
+                class="text-[10px] font-medium text-[#0071e3] hover:underline">Edit</button>
+              <div v-else class="flex gap-2">
+                <button @click="cancelEditDocs" class="text-[10px] text-[#6e6e73] hover:text-[#1d1d1f]">Cancel</button>
+                <button @click="saveDocChanges" :disabled="savingDocs"
+                  class="text-[10px] font-semibold text-[#0071e3] disabled:opacity-50">
+                  {{ savingDocs ? '…' : 'Save' }}
+                </button>
               </div>
             </div>
+
+            <!-- View mode -->
+            <template v-if="!editingDocs">
+              <div v-if="roomDocs.length === 0" class="text-xs text-[#6e6e73]">None attached</div>
+              <div v-for="doc in roomDocs" :key="doc!.id" class="flex items-start gap-2 py-1.5">
+                <div class="w-6 h-6 rounded-lg bg-[#0071e3]/[0.08] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-3 h-3 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ doc!.original_name }}</p>
+                  <p class="text-[10px] text-[#6e6e73]">{{ doc!.chunk_count ?? '—' }} chunks</p>
+                </div>
+              </div>
+            </template>
+
+            <!-- Edit mode -->
+            <template v-else>
+              <div v-if="readyDocs.length === 0" class="text-xs text-[#6e6e73] py-2">No ready documents</div>
+              <label v-for="doc in readyDocs" :key="doc.id"
+                :class="['flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-colors', pendingDocIds.includes(doc.id) ? 'bg-[#0071e3]/[0.08]' : 'hover:bg-[#f5f5f7]']">
+                <input type="checkbox" :checked="pendingDocIds.includes(doc.id)" @change="togglePendingDoc(doc.id)"
+                  class="w-3.5 h-3.5 rounded accent-[#0071e3] flex-shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ doc.original_name }}</p>
+                  <p class="text-[10px] text-[#6e6e73]">{{ doc.chunk_count ?? '—' }} chunks</p>
+                </div>
+              </label>
+            </template>
           </div>
         </div>
       </div>

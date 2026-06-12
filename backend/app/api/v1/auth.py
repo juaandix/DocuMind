@@ -14,7 +14,18 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
+from pydantic import BaseModel, Field
+
 from app.models.user import TokenResponse, UserInDB, UserLogin, UserPublic, UserRegister, UserRole
+
+
+class UpdateMe(BaseModel):
+    full_name: str = Field(min_length=1, max_length=100)
+
+
+class UpdatePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -109,4 +120,33 @@ async def me(current_user: UserInDB = Depends(get_current_user)):
         role=current_user.role,
         avatar_url=current_user.avatar_url,
         workspace_id=current_user.workspace_id,
+    )
+
+
+@router.patch("/me", response_model=UserPublic)
+async def update_me(body: UpdateMe, current_user: UserInDB = Depends(get_current_user)):
+    db = get_db()
+    await db.users.update_one(
+        {"_id": ObjectId(current_user.id)},
+        {"$set": {"full_name": body.full_name, "updated_at": datetime.now(UTC)}},
+    )
+    return UserPublic(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=body.full_name,
+        role=current_user.role,
+        avatar_url=current_user.avatar_url,
+        workspace_id=current_user.workspace_id,
+    )
+
+
+@router.post("/me/password", status_code=204)
+async def change_password(body: UpdatePassword, current_user: UserInDB = Depends(get_current_user)):
+    if not verify_password(body.current_password, current_user.hashed_password):
+        from app.core.exceptions import UnprocessableError
+        raise UnprocessableError("Current password is incorrect")
+    db = get_db()
+    await db.users.update_one(
+        {"_id": ObjectId(current_user.id)},
+        {"$set": {"hashed_password": hash_password(body.new_password), "updated_at": datetime.now(UTC)}},
     )
