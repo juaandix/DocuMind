@@ -18,7 +18,12 @@ async function handleRegister() {
     await auth.register({ full_name: fullName.value, email: email.value, password: password.value, workspace_name: workspaceName.value })
     router.push('/dashboard')
   } catch (e: unknown) {
-    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Registration failed'
+    const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+    if (Array.isArray(detail)) {
+      error.value = (detail[0] as { msg?: string })?.msg ?? 'Registration failed'
+    } else {
+      error.value = (detail as string) ?? 'Registration failed'
+    }
   } finally { loading.value = false }
 }
 </script>

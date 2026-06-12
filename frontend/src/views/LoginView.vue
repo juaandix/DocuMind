@@ -17,7 +17,8 @@ async function handleLogin() {
     await auth.login(email.value, password.value)
     router.push('/dashboard')
   } catch (e: unknown) {
-    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Invalid email or password'
+    const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+    error.value = Array.isArray(detail) ? ((detail[0] as { msg?: string })?.msg ?? 'Invalid email or password') : ((detail as string) ?? 'Invalid email or password')
   } finally { loading.value = false }
 }
 </script>

@@ -29,7 +29,16 @@ async def workspace_websocket(websocket: WebSocket, token: str = ""):
 
     redis = get_redis()
     pubsub = redis.pubsub()
-    await pubsub.subscribe(f"workspace:{user.workspace_id}")
+    try:
+        await pubsub.subscribe(f"workspace:{user.workspace_id}")
+    except Exception:
+        # Redis unavailable — keep connection open, events won't arrive
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            pass
+        return
 
     async def forward():
         async for message in pubsub.listen():

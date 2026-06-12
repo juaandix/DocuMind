@@ -36,16 +36,17 @@ export const useNotificationsStore = defineStore('notifications', () => {
   function connectWs() {
     const token = localStorage.getItem('access_token')
     if (!token) return
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    ws = new WebSocket(`${proto}//${location.host}/ws/workspace?token=${token}`)
+    const wsBase = (import.meta.env.VITE_WS_BASE_URL as string) || 'ws://localhost:8000'
+    ws = new WebSocket(`${wsBase}/ws/workspace?token=${token}`)
 
     ws.onmessage = () => {
       // Any workspace event (document_ready, document_error, export_ready) → refresh
       setTimeout(fetchAll, 1500)
     }
 
+    let retryDelay = 5000
     ws.onclose = () => {
-      setTimeout(connectWs, 5000)
+      setTimeout(() => { retryDelay = Math.min(retryDelay * 2, 60_000); connectWs() }, retryDelay)
     }
   }
 

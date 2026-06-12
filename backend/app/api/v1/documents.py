@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.document import DocumentPublic, TagsUpdate
 from app.models.user import UserInDB, UserRole
 from app.services.storage_service import StorageService
+from app.redis_client import get_redis
 from app.workers.document_processor import process_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -80,8 +81,12 @@ async def upload_document(
         {"$inc": {"storage_used_bytes": len(file_bytes)}},
     )
 
-    # Enqueue Celery task
-    process_document.delay(str(doc_id), current_user.workspace_id)
+    # Enqueue Celery task only when Redis is reachable
+    try:
+        await get_redis().ping()
+        process_document.delay(str(doc_id), current_user.workspace_id)
+    except Exception:
+        pass  # document stays in UPLOADING status until broker is available
 
     return DocumentPublic(**_fmt_doc(doc))
 
