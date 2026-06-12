@@ -18,6 +18,39 @@ logger = logging.getLogger(__name__)
 _connections: dict[str, dict[str, WebSocket]] = {}
 
 
+@router.websocket("/ws/workspace")
+async def workspace_websocket(websocket: WebSocket, token: str = ""):
+    user = await get_ws_user(websocket, token)
+    if not user:
+        await websocket.close(code=4001)
+        return
+
+    await websocket.accept()
+
+    redis = get_redis()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe(f"workspace:{user.workspace_id}")
+
+    async def forward():
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    await websocket.send_text(message["data"])
+                except Exception:
+                    break
+
+    forwarder = asyncio.create_task(forward())
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        forwarder.cancel()
+        await pubsub.unsubscribe(f"workspace:{user.workspace_id}")
+
+
 @router.websocket("/ws/room/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, token: str = ""):
     user = await get_ws_user(websocket, token)

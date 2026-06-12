@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useNotificationsStore } from '@/stores/notifications.store'
+import type { NotificationType } from '@/types/notification'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const notifStore = useNotificationsStore()
 
 const navMain = [
   { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
@@ -32,6 +35,30 @@ const initials = computed(() => {
   const name = auth.user?.full_name ?? ''
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 })
+
+// Notifications
+const drawerOpen = ref(false)
+
+onMounted(() => notifStore.init())
+onUnmounted(() => notifStore.cleanup())
+
+function formatRelTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
+const notifStyle: Record<NotificationType, { icon: string; bg: string; color: string }> = {
+  document_ready:   { icon: 'check', bg: 'bg-[#34c759]/[0.1]', color: 'text-[#34c759]' },
+  document_error:   { icon: 'x',     bg: 'bg-red-50',           color: 'text-red-500' },
+  export_ready:     { icon: 'down',  bg: 'bg-[#0071e3]/[0.08]', color: 'text-[#0071e3]' },
+  workspace_invite: { icon: 'user',  bg: 'bg-[#af52de]/[0.1]',  color: 'text-[#af52de]' },
+  storage_warning:  { icon: 'warn',  bg: 'bg-[#ff9f0a]/[0.1]',  color: 'text-[#ff9f0a]' },
+}
 </script>
 
 <template>
@@ -128,8 +155,120 @@ const initials = computed(() => {
     </aside>
 
     <!-- Main content card -->
-    <main class="flex-1 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-y-auto">
-      <router-view />
+    <main class="flex-1 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col overflow-hidden">
+
+      <!-- Persistent header with notification bell -->
+      <div class="flex items-center justify-end px-5 h-12 border-b border-black/[0.04] flex-shrink-0">
+        <button @click="drawerOpen = true"
+          class="relative p-2 rounded-lg text-[#6e6e73] hover:bg-[#f5f5f7] transition-colors"
+          title="Notifications">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span v-if="notifStore.unread > 0"
+            class="absolute top-1 right-1 bg-[#ff3b30] text-white text-[9px] font-bold rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center leading-none">
+            {{ notifStore.unread > 9 ? '9+' : notifStore.unread }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Scrollable view content -->
+      <div class="flex-1 overflow-y-auto">
+        <router-view />
+      </div>
     </main>
+
+    <!-- Notification drawer -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-150"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="drawerOpen" class="fixed inset-0 z-50 flex justify-end">
+        <!-- Backdrop -->
+        <div class="flex-1 bg-black/[0.15]" @click="drawerOpen = false"/>
+
+        <!-- Panel (slide from right) -->
+        <div class="w-80 bg-white h-full shadow-[-4px_0_24px_rgba(0,0,0,0.08)] flex flex-col">
+
+          <!-- Drawer header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b border-black/[0.06] flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-semibold text-[#1d1d1f]">Notifications</h2>
+              <span v-if="notifStore.unread > 0"
+                class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#ff3b30] text-white leading-none">
+                {{ notifStore.unread }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button v-if="notifStore.unread > 0"
+                @click="notifStore.markAllRead()"
+                class="text-xs font-medium text-[#0071e3] hover:underline">
+                Mark all read
+              </button>
+              <button @click="drawerOpen = false"
+                class="p-1 rounded-lg text-[#6e6e73] hover:bg-[#f5f5f7] transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification list -->
+          <div class="flex-1 overflow-y-auto">
+            <div v-if="notifStore.items.length === 0"
+              class="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+              <div class="w-10 h-10 rounded-xl bg-[#0071e3]/[0.06] flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-[#0071e3]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+              </div>
+              <p class="text-sm font-medium text-[#1d1d1f]">All caught up</p>
+              <p class="text-xs text-[#6e6e73] mt-1">No notifications yet</p>
+            </div>
+
+            <div v-for="n in notifStore.items" :key="n._id"
+              :class="['flex gap-3 px-4 py-3.5 border-b border-black/[0.04] last:border-0 transition-colors', !n.read && 'bg-[#0071e3]/[0.025]']">
+
+              <!-- Icon -->
+              <div :class="['w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', notifStyle[n.type]?.bg ?? 'bg-[#f5f5f7]']">
+                <!-- check -->
+                <svg v-if="notifStyle[n.type]?.icon === 'check'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <!-- x -->
+                <svg v-else-if="notifStyle[n.type]?.icon === 'x'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <!-- down arrow (export) -->
+                <svg v-else-if="notifStyle[n.type]?.icon === 'down'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <!-- user (invite) -->
+                <svg v-else-if="notifStyle[n.type]?.icon === 'user'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                </svg>
+                <!-- warn -->
+                <svg v-else :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="text-sm font-medium text-[#1d1d1f] leading-snug">{{ n.title }}</p>
+                  <div v-if="!n.read" class="w-1.5 h-1.5 rounded-full bg-[#0071e3] flex-shrink-0 mt-1.5"/>
+                </div>
+                <p class="text-xs text-[#6e6e73] mt-0.5 leading-relaxed">{{ n.body }}</p>
+                <p class="text-[10px] text-[#a0a0a5] mt-1">{{ formatRelTime(n.created_at) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>

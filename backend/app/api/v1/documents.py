@@ -75,6 +75,10 @@ async def upload_document(
         "processed_at": None,
     }
     await db.documents.insert_one(doc)
+    await db.workspaces.update_one(
+        {"_id": ObjectId(current_user.workspace_id)},
+        {"$inc": {"storage_used_bytes": len(file_bytes)}},
+    )
 
     # Enqueue Celery task
     process_document.delay(str(doc_id), current_user.workspace_id)
@@ -143,3 +147,7 @@ async def delete_document(
 
     await db.document_chunks.delete_many({"document_id": ObjectId(doc_id)})
     await db.documents.delete_one({"_id": ObjectId(doc_id)})
+    await db.workspaces.update_one(
+        {"_id": ObjectId(current_user.workspace_id)},
+        {"$inc": {"storage_used_bytes": -doc.get("size_bytes", 0)}},
+    )

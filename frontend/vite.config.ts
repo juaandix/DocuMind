@@ -38,6 +38,7 @@ export default defineConfig(() => {
       proxy: {
         '/api': { target: backendUrl, changeOrigin: true },
         '/ws': { target: `ws://localhost:${ports.BACKEND_PORT}`, ws: true },
+        '/notifications': { target: `http://localhost:${ports.NOTIFICATION_PORT}`, changeOrigin: true },
       },
     },
     test: {
