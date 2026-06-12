@@ -25,9 +25,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = [
+    f"http://localhost:{settings.frontend_port}",
+    f"http://localhost:{settings.admin_port}",
+    *settings.allowed_origins,  # extra production domains from .env
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

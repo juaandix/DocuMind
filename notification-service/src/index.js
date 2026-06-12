@@ -27,8 +27,20 @@ async function start() {
 
   startSubscriber()
 
-  app.listen(config.port, () => {
+  const server = app.listen(config.port, () => {
     logger.info(`Notification service listening on port ${config.port}`)
+  })
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.error(
+        `Port ${config.port} is already in use. ` +
+        `Stop the conflicting process (run: lsof -i :${config.port}) and restart.`
+      )
+    } else {
+      logger.error('Server startup error', { error: err.message, code: err.code })
+    }
+    process.exit(1)
   })
 }
 

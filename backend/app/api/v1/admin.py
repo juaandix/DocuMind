@@ -199,3 +199,28 @@ async def list_platform_notifications(
             "created_at": n.get("created_at"),
         })
     return result
+
+
+@router.get("/stats/history")
+async def stats_history(
+    days: int = Query(7, ge=1, le=30),
+    _: UserInDB = Depends(require_platform_admin),
+):
+    db = get_db()
+    now = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    history = []
+    for i in range(days - 1, -1, -1):
+        day_start = now - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        docs_processed = await db.documents.count_documents(
+            {"status": "READY", "processed_at": {"$gte": day_start, "$lt": day_end}}
+        )
+        new_users = await db.users.count_documents(
+            {"created_at": {"$gte": day_start, "$lt": day_end}}
+        )
+        history.append({
+            "date": day_start.strftime("%b %d"),
+            "docs_processed": docs_processed,
+            "new_users": new_users,
+        })
+    return history

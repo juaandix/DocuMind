@@ -18,6 +18,12 @@ export const useRoomsStore = defineStore('rooms', () => {
     rooms.value = await roomsService.list()
   }
 
+  async function createRoom(name: string, documentIds: string[]): Promise<Room> {
+    const room = await roomsService.create(name, documentIds)
+    rooms.value.unshift(room)
+    return room
+  }
+
   async function fetchMessages(roomId: string) {
     messages.value = await roomsService.getMessages(roomId)
   }
@@ -112,7 +118,7 @@ export const useRoomsStore = defineStore('rooms', () => {
 
   return {
     rooms, activeRoom, messages, connectedUsers, isAiTyping, aiStreamBuffer,
-    fetchRooms, fetchMessages, loadMoreMessages,
+    fetchRooms, createRoom, fetchMessages, loadMoreMessages,
     connectWebSocket, sendMessage, sendTypingStart, sendTypingStop, disconnect,
   }
 })

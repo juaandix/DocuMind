@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: 'Inter', Roboto, 'Helvetica Neue', sans-serif; background: #f9fafb; }
+
+/* Override Material card radius */
+.mat-mdc-card { border-radius: 12px !important; border: 1px solid #e5e7eb !important; box-shadow: none !important; }
+.mat-mdc-card:hover { box-shadow: 0 1px 4px rgba(0,0,0,.06) !important; }
+
+/* Table improvements */
+.mat-mdc-row:hover .mat-mdc-cell { background: #f9fafb; }
+.mat-mdc-header-cell { font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af !important; }
+.mat-mdc-cell { font-size: 13px !important; color: #374151; }
+
+/* Sidenav */
+.mdc-list-item__primary-text { color: #c7d2fe !important; font-size: 14px; }
+.mdc-list-item:hover .mdc-list-item__primary-text { color: #fff !important; }

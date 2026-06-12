@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http'
 import { catchError, map, of, switchMap } from 'rxjs'
 import * as WorkspaceActions from './workspaces.actions'
 import { PaginatedResponse, Workspace } from '../../shared/models'
-import { environment } from '../../../../environments/environment'
+import { environment } from '../../../environments/environment'
 
 const BASE = `${environment.apiUrl}/api/v1/admin/platform`
 

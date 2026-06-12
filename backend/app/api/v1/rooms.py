@@ -124,3 +124,42 @@ async def get_messages(
 async def export_room(room_id: str, current_user: UserInDB = Depends(get_current_user)):
     task = export_chat_pdf.delay(room_id, current_user.workspace_id, current_user.id)
     return {"task_id": task.id, "status": "queued"}
+
+
+@router.get("/{room_id}/exports")
+async def list_exports(room_id: str, current_user: UserInDB = Depends(get_current_user)):
+    db = get_db()
+    cursor = db.exports.find(
+        {"room_id": ObjectId(room_id), "workspace_id": ObjectId(current_user.workspace_id)}
+    ).sort("created_at", -1).limit(10)
+    exports = []
+    async for e in cursor:
+        exports.append({
+            "id": str(e["_id"]),
+            "message_count": e.get("message_count", 0),
+            "created_at": e.get("created_at"),
+        })
+    return exports
+
+
+@router.get("/{room_id}/exports/{export_id}/download")
+async def download_export(
+    room_id: str,
+    export_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+):
+    from app.services.storage_service import StorageService
+
+    db = get_db()
+    export = await db.exports.find_one(
+        {
+            "_id": ObjectId(export_id),
+            "room_id": ObjectId(room_id),
+            "workspace_id": ObjectId(current_user.workspace_id),
+        }
+    )
+    if not export:
+        raise NotFoundError("Export not found")
+    storage = StorageService()
+    url = storage.presigned_url(export["s3_key"], expires_in=300)
+    return {"download_url": url, "expires_in": 300}
