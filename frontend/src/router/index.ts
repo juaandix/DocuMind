@@ -6,6 +6,7 @@ const router = createRouter({
   routes: [
     { path: '/login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
     { path: '/register', component: () => import('@/views/RegisterView.vue'), meta: { public: true } },
+    { path: '/invite/:token', component: () => import('@/views/AcceptInviteView.vue'), meta: { public: true } },
     {
       path: '/',
       component: () => import('@/components/AppLayout.vue'),

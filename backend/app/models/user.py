@@ -68,3 +68,13 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class InviteRequest(BaseModel):
+    email: EmailStr
+    role: UserRole = UserRole.MEMBER
+
+
+class InviteAccept(BaseModel):
+    full_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8)

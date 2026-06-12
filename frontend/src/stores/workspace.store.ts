@@ -32,5 +32,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     members.value = members.value.filter((m) => m.id !== userId)
   }
 
-  return { workspace, members, fetchWorkspace, fetchMembers, removeMember }
+  async function inviteMember(email: string, role: string): Promise<string> {
+    const { data } = await api.post<{ token: string }>('/api/v1/workspace/members/invite', { email, role })
+    return data.token
+  }
+
+  return { workspace, members, fetchWorkspace, fetchMembers, removeMember, inviteMember }
 })

@@ -41,3 +41,7 @@ async def init_indexes() -> None:
     # messages
     await db.messages.create_index([("room_id", 1), ("created_at", -1)])
     await db.messages.create_index("workspace_id")
+    # invites
+    await db.invites.create_index("token", unique=True)
+    await db.invites.create_index([("workspace_id", 1), ("email", 1)])
+    await db.invites.create_index("expires_at")
