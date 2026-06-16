@@ -23,12 +23,12 @@ function onFileChange(e: Event) {
 async function startUpload(file: File) {
   error.value = ''; uploading.value = true; progress.value = 0
   try {
-    const doc = await store.upload(file)
+    const doc = await store.upload(file, (pct) => { progress.value = pct })
     uploadedDocId.value = doc.id
     store.pollStatus(doc.id)
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Upload failed'
-  } finally { uploading.value = false; progress.value = 100; if (fileInput.value) fileInput.value.value = '' }
+  } finally { uploading.value = false; if (fileInput.value) fileInput.value.value = '' }
 }
 </script>
 

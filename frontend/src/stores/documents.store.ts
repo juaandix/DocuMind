@@ -11,15 +11,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     documents.value = await documentsService.list()
   }
 
-  async function upload(file: File): Promise<Document> {
-    const tempId = `uploading-${Date.now()}`
-    uploadProgress.value[tempId] = 0
-
-    const doc = await documentsService.upload(file, (pct) => {
-      uploadProgress.value[tempId] = pct
-    })
-
-    delete uploadProgress.value[tempId]
+  async function upload(file: File, onProgress?: (pct: number) => void): Promise<Document> {
+    const doc = await documentsService.upload(file, onProgress)
     documents.value.unshift(doc)
     return doc
   }

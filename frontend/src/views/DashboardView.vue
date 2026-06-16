@@ -49,6 +49,31 @@ const firstName = computed(() => auth.user?.full_name?.split(' ')[0] ?? '')
       <p class="text-sm text-[#6e6e73] mt-1">Here's what's happening in your workspace.</p>
     </div>
 
+    <!-- Quick actions -->
+    <div class="flex flex-wrap gap-3 mb-8">
+      <router-link to="/documents/upload"
+        class="inline-flex items-center gap-2 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-xl px-4 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
+        Upload document
+      </router-link>
+      <router-link to="/rooms/new"
+        class="inline-flex items-center gap-2 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f] text-sm font-medium rounded-xl px-4 py-2.5 border border-black/[0.1] shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        New chat room
+      </router-link>
+      <router-link to="/settings/members"
+        class="inline-flex items-center gap-2 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f] text-sm font-medium rounded-xl px-4 py-2.5 border border-black/[0.1] shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Invite member
+      </router-link>
+    </div>
+
     <!-- Stat cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">

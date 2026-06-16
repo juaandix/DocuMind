@@ -5,13 +5,26 @@ import type { DocumentStatus } from '@/types/document'
 
 const store = useDocumentsStore()
 const search = ref('')
+const statusFilter = ref<DocumentStatus | 'ALL'>('ALL')
 const deleting = ref<string | null>(null)
 
 onMounted(() => store.fetchDocuments())
 
 const filtered = computed(() =>
-  store.documents.filter(d => d.original_name.toLowerCase().includes(search.value.toLowerCase()))
+  store.documents.filter(d => {
+    const matchesName = d.original_name.toLowerCase().includes(search.value.toLowerCase())
+    const matchesStatus = statusFilter.value === 'ALL' || d.status === statusFilter.value
+    return matchesName && matchesStatus
+  })
 )
+
+const statusCounts = computed(() => ({
+  ALL: store.documents.length,
+  READY: store.documents.filter(d => d.status === 'READY').length,
+  PROCESSING: store.documents.filter(d => d.status === 'PROCESSING').length,
+  UPLOADING: store.documents.filter(d => d.status === 'UPLOADING').length,
+  ERROR: store.documents.filter(d => d.status === 'ERROR').length,
+}))
 
 const statusConfig: Record<DocumentStatus, { label: string; cls: string }> = {
   UPLOADING: { label: 'Uploading', cls: 'bg-[#0071e3]/[0.08] text-[#0071e3]' },
@@ -50,13 +63,29 @@ async function handleDelete(id: string) {
       </router-link>
     </div>
 
-    <div class="relative mb-5">
-      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-      <input v-model="search" type="text" placeholder="Search documents…"
-        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/[0.1] bg-white text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-      />
+    <!-- Search + filters -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-5">
+      <div class="relative flex-1">
+        <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input v-model="search" type="text" placeholder="Search documents…"
+          class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/[0.1] bg-white text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
+        />
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button v-for="(label, key) in ({ ALL: 'All', READY: 'Ready', PROCESSING: 'Processing', ERROR: 'Error' } as Record<string,string>)" :key="key"
+          @click="statusFilter = key as DocumentStatus | 'ALL'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+            statusFilter === key
+              ? key === 'ALL' ? 'bg-[#1d1d1f] text-white' : key === 'READY' ? 'bg-[#34c759] text-white' : key === 'ERROR' ? 'bg-red-500 text-white' : 'bg-[#ff9f0a] text-white'
+              : 'bg-white border border-black/[0.1] text-[#6e6e73] hover:text-[#1d1d1f]'
+          ]">
+          {{ label }}
+          <span class="ml-1 opacity-70">{{ statusCounts[key as keyof typeof statusCounts] }}</span>
+        </button>
+      </div>
     </div>
 
     <div v-if="filtered.length === 0" class="flex flex-col items-center justify-center py-24 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
