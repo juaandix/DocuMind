@@ -24,6 +24,7 @@ const router = createRouter({
         { path: 'settings/members', component: () => import('@/views/MembersView.vue') },
       ],
     },
+    { path: '/:pathMatch(.*)*', component: () => import('@/views/NotFoundView.vue'), meta: { public: true } },
   ],
 })
 

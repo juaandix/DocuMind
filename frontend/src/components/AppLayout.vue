@@ -2,13 +2,17 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useWorkspaceStore } from '@/stores/workspace.store'
 import { useNotificationsStore } from '@/stores/notifications.store'
 import type { NotificationType } from '@/types/notification'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const wsStore = useWorkspaceStore()
 const notifStore = useNotificationsStore()
+
+const workspaceName = computed(() => wsStore.workspace?.name ?? auth.user?.full_name?.split(' ')[0] ?? 'Workspace')
 
 const navMain = [
   { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
@@ -39,7 +43,7 @@ const initials = computed(() => {
 // Notifications
 const drawerOpen = ref(false)
 
-onMounted(() => notifStore.init())
+onMounted(() => { notifStore.init(); wsStore.fetchWorkspace() })
 onUnmounted(() => notifStore.cleanup())
 
 function formatRelTime(iso: string): string {
@@ -77,7 +81,7 @@ const notifStyle: Record<NotificationType, { icon: string; bg: string; color: st
           </div>
           <div>
             <p class="text-sm font-semibold text-[#1d1d1f] leading-tight tracking-tight">DocuMind</p>
-            <p class="text-[10px] text-[#6e6e73] leading-tight">Workspace</p>
+            <p class="text-[10px] text-[#6e6e73] leading-tight truncate max-w-[7rem]">{{ workspaceName }}</p>
           </div>
         </div>
       </div>

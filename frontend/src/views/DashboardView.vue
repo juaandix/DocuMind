@@ -37,6 +37,7 @@ const greeting = computed(() => {
   return 'Good evening'
 })
 const firstName = computed(() => auth.user?.full_name?.split(' ')[0] ?? '')
+const isNewUser = computed(() => docsStore.documents.length === 0 && roomsStore.rooms.length === 0)
 </script>
 
 <template>
@@ -72,6 +73,47 @@ const firstName = computed(() => auth.user?.full_name?.split(' ')[0] ?? '')
         </svg>
         Invite member
       </router-link>
+    </div>
+
+    <!-- Onboarding (new users only) -->
+    <div v-if="isNewUser" class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6 mb-8">
+      <h2 class="text-base font-semibold text-[#1d1d1f] mb-1">Get started with DocuMind</h2>
+      <p class="text-sm text-[#6e6e73] mb-5">Three steps to start chatting with your documents.</p>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <router-link to="/documents/upload"
+          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-[#0071e3]/30 hover:border-[#0071e3] hover:bg-[#0071e3]/[0.02] transition-all">
+          <div class="w-9 h-9 rounded-xl bg-[#0071e3]/[0.1] flex items-center justify-center">
+            <span class="text-sm font-bold text-[#0071e3]">1</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-[#1d1d1f]">Upload a document</p>
+            <p class="text-xs text-[#6e6e73] mt-0.5">PDF, DOCX or TXT — up to 50 MB</p>
+          </div>
+          <span class="text-xs font-medium text-[#0071e3] group-hover:underline">Upload →</span>
+        </router-link>
+        <router-link to="/rooms/new"
+          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-black/[0.1] hover:border-[#34c759] hover:bg-[#34c759]/[0.02] transition-all">
+          <div class="w-9 h-9 rounded-xl bg-[#34c759]/[0.1] flex items-center justify-center">
+            <span class="text-sm font-bold text-[#34c759]">2</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-[#1d1d1f]">Create a chat room</p>
+            <p class="text-xs text-[#6e6e73] mt-0.5">Attach documents and start a conversation</p>
+          </div>
+          <span class="text-xs font-medium text-[#34c759] group-hover:underline">Create room →</span>
+        </router-link>
+        <router-link to="/settings/members"
+          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-black/[0.1] hover:border-[#af52de] hover:bg-[#af52de]/[0.02] transition-all">
+          <div class="w-9 h-9 rounded-xl bg-[#af52de]/[0.1] flex items-center justify-center">
+            <span class="text-sm font-bold text-[#af52de]">3</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-[#1d1d1f]">Invite your team</p>
+            <p class="text-xs text-[#6e6e73] mt-0.5">Collaborate with colleagues in real time</p>
+          </div>
+          <span class="text-xs font-medium text-[#af52de] group-hover:underline">Invite members →</span>
+        </router-link>
+      </div>
     </div>
 
     <!-- Stat cards -->

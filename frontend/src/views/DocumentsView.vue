@@ -6,12 +6,12 @@ import type { DocumentStatus } from '@/types/document'
 const store = useDocumentsStore()
 const search = ref('')
 const statusFilter = ref<DocumentStatus | 'ALL'>('ALL')
+const tagFilter = ref<string | null>(null)
 const deleting = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await store.fetchDocuments()
-  // Poll every 5s while documents are being processed
   pollTimer = setInterval(async () => {
     const hasProcessing = store.documents.some(d => d.status === 'PROCESSING' || d.status === 'UPLOADING')
     if (hasProcessing) await store.fetchDocuments()
@@ -20,11 +20,18 @@ onMounted(async () => {
 
 onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
+const allTags = computed(() => {
+  const set = new Set<string>()
+  store.documents.forEach(d => d.tags?.forEach(t => set.add(t)))
+  return [...set].sort()
+})
+
 const filtered = computed(() =>
   store.documents.filter(d => {
     const matchesName = d.original_name.toLowerCase().includes(search.value.toLowerCase())
     const matchesStatus = statusFilter.value === 'ALL' || d.status === statusFilter.value
-    return matchesName && matchesStatus
+    const matchesTag = !tagFilter.value || d.tags?.includes(tagFilter.value)
+    return matchesName && matchesStatus && matchesTag
   })
 )
 
@@ -74,26 +81,40 @@ async function handleDelete(id: string) {
     </div>
 
     <!-- Search + filters -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-5">
-      <div class="relative flex-1">
-        <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-        <input v-model="search" type="text" placeholder="Search documents…"
-          class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/[0.1] bg-white text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-        />
+    <div class="flex flex-col gap-3 mb-5">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input v-model="search" type="text" placeholder="Search documents…"
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/[0.1] bg-white text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
+          />
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button v-for="(label, key) in ({ ALL: 'All', READY: 'Ready', PROCESSING: 'Processing', ERROR: 'Error' } as Record<string,string>)" :key="key"
+            @click="statusFilter = key as DocumentStatus | 'ALL'"
+            :class="[
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+              statusFilter === key
+                ? key === 'ALL' ? 'bg-[#1d1d1f] text-white' : key === 'READY' ? 'bg-[#34c759] text-white' : key === 'ERROR' ? 'bg-red-500 text-white' : 'bg-[#ff9f0a] text-white'
+                : 'bg-white border border-black/[0.1] text-[#6e6e73] hover:text-[#1d1d1f]'
+            ]">
+            {{ label }}
+            <span class="ml-1 opacity-70">{{ statusCounts[key as keyof typeof statusCounts] }}</span>
+          </button>
+        </div>
       </div>
-      <div class="flex items-center gap-1.5">
-        <button v-for="(label, key) in ({ ALL: 'All', READY: 'Ready', PROCESSING: 'Processing', ERROR: 'Error' } as Record<string,string>)" :key="key"
-          @click="statusFilter = key as DocumentStatus | 'ALL'"
-          :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
-            statusFilter === key
-              ? key === 'ALL' ? 'bg-[#1d1d1f] text-white' : key === 'READY' ? 'bg-[#34c759] text-white' : key === 'ERROR' ? 'bg-red-500 text-white' : 'bg-[#ff9f0a] text-white'
-              : 'bg-white border border-black/[0.1] text-[#6e6e73] hover:text-[#1d1d1f]'
-          ]">
-          {{ label }}
-          <span class="ml-1 opacity-70">{{ statusCounts[key as keyof typeof statusCounts] }}</span>
+
+      <!-- Tag cloud -->
+      <div v-if="allTags.length > 0" class="flex flex-wrap gap-1.5">
+        <button @click="tagFilter = null"
+          :class="['px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors', !tagFilter ? 'bg-[#0071e3]/[0.1] text-[#0071e3]' : 'bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]']">
+          All tags
+        </button>
+        <button v-for="tag in allTags" :key="tag" @click="tagFilter = tagFilter === tag ? null : tag"
+          :class="['px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors', tagFilter === tag ? 'bg-[#0071e3] text-white' : 'bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]']">
+          # {{ tag }}
         </button>
       </div>
     </div>
