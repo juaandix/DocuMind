@@ -7,11 +7,22 @@ services:
       - mongo_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: documind
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -24,6 +35,11 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
@@ -31,20 +47,32 @@ services:
       - "8000:8000"
     env_file: ./backend/.env
     depends_on:
-      - mongodb
-      - redis
-      - minio
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   worker:
     build: ./backend
     env_file: ./backend/.env
     depends_on:
-      - mongodb
-      - redis
-      - minio
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     volumes:
       - ./backend:/app
     command: celery -A app.workers.celery_app worker --loglevel=info
@@ -55,31 +83,41 @@ services:
       - "3001:3001"
     env_file: ./notification-service/.env
     depends_on:
-      - mongodb
-      - redis
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./notification-service:/app
       - /app/node_modules
     command: node src/index.js
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
-    env_file: ./frontend/.env
+      - "80:80"
     depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   admin-panel:
     build: ./admin-panel
     ports:
       - "4200:4200"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     volumes:
       - ./admin-panel:/app
       - /app/node_modules

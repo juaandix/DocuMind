@@ -21,6 +21,17 @@ async function handleRemove(userId: string, name: string) {
   await wsStore.removeMember(userId)
 }
 
+const changingRole = ref<string | null>(null)
+
+async function handleRoleChange(userId: string, newRole: string) {
+  changingRole.value = userId
+  try {
+    await wsStore.updateMemberRole(userId, newRole)
+  } finally {
+    changingRole.value = null
+  }
+}
+
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
@@ -82,7 +93,18 @@ function copyLink() {
           <p class="text-xs text-[#6e6e73] truncate">{{ member.email }}</p>
         </div>
 
-        <span :class="['text-xs font-medium px-2.5 py-1 rounded-full', roleConfig[member.role]?.cls ?? '']">
+        <template v-if="canManage && member.id !== auth.user?.id && member.role !== 'OWNER'">
+          <select
+            :value="member.role"
+            :disabled="changingRole === member.id"
+            @change="handleRoleChange(member.id, ($event.target as HTMLSelectElement).value)"
+            class="text-xs rounded-lg border border-black/[0.12] bg-[#f5f5f7] text-[#1d1d1f] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 disabled:opacity-50 transition-colors"
+          >
+            <option value="MEMBER">Member</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </template>
+        <span v-else :class="['text-xs font-medium px-2.5 py-1 rounded-full', roleConfig[member.role]?.cls ?? '']">
           {{ roleConfig[member.role]?.label ?? member.role }}
         </span>
 

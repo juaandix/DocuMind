@@ -37,5 +37,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return data.token
   }
 
-  return { workspace, members, fetchWorkspace, fetchMembers, removeMember, inviteMember }
+  async function updateMemberRole(userId: string, role: string) {
+    const { data } = await api.patch<User>(`/api/v1/workspace/members/${userId}`, { role })
+    const idx = members.value.findIndex((m) => m.id === userId)
+    if (idx >= 0) members.value[idx] = data
+  }
+
+  return { workspace, members, fetchWorkspace, fetchMembers, removeMember, inviteMember, updateMemberRole }
 })

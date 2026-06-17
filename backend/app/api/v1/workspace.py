@@ -6,7 +6,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import get_current_user, require_role
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, UnprocessableError
 from app.core.security import create_access_token, create_refresh_token, hash_password
 from app.database import get_db
 from app.models.user import InviteAccept, InviteRequest, UserInDB, UserRole
@@ -59,6 +59,27 @@ async def list_members(current_user: UserInDB = Depends(get_current_user)):
     cursor = db.users.find({"workspace_id": ObjectId(current_user.workspace_id), "is_active": True})
     members = [_fmt_user(u) async for u in cursor]
     return members
+
+
+@router.patch("/members/{user_id}")
+async def update_member_role(
+    user_id: str,
+    body: dict,
+    current_user: UserInDB = Depends(require_role(UserRole.OWNER, UserRole.ADMIN)),
+):
+    db = get_db()
+    new_role = body.get("role")
+    if new_role not in {r.value for r in UserRole} or new_role == UserRole.OWNER:
+        raise UnprocessableError("Invalid role")
+
+    result = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id), "workspace_id": ObjectId(current_user.workspace_id), "is_active": True},
+        {"$set": {"role": new_role}},
+        return_document=True,
+    )
+    if not result:
+        raise NotFoundError("Member not found")
+    return _fmt_user(result)
 
 
 @router.delete("/members/{user_id}", status_code=204)
