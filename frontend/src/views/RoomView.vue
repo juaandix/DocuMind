@@ -20,6 +20,34 @@ const exporting = ref(false)
 const exportTaskId = ref<string | null>(null)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
+// Room rename
+const editingName = ref(false)
+const pendingName = ref('')
+const savingName = ref(false)
+
+function startRename() {
+  pendingName.value = room.value?.name ?? ''
+  editingName.value = true
+}
+
+async function saveRename() {
+  if (!pendingName.value.trim() || pendingName.value === room.value?.name) { editingName.value = false; return }
+  savingName.value = true
+  try {
+    const { roomsService } = await import('@/services/rooms.service')
+    const updated = await roomsService.update(roomId.value, { name: pendingName.value.trim() })
+    roomsStore.activeRoom = updated
+    const idx = roomsStore.rooms.findIndex(r => r.id === roomId.value)
+    if (idx >= 0) roomsStore.rooms[idx] = updated
+    editingName.value = false
+  } finally { savingName.value = false }
+}
+
+function onRenameKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter') saveRename()
+  if (e.key === 'Escape') editingName.value = false
+}
+
 // Document management in sidebar
 const editingDocs = ref(false)
 const pendingDocIds = ref<string[]>([])
@@ -125,7 +153,20 @@ function renderContent(text: string): string {
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </router-link>
-        <h1 class="text-sm font-semibold text-[#1d1d1f] truncate">{{ room?.name ?? 'Chat' }}</h1>
+        <template v-if="editingName">
+          <input
+            v-model="pendingName"
+            @keydown="onRenameKeydown"
+            @blur="saveRename"
+            autofocus
+            class="text-sm font-semibold text-[#1d1d1f] bg-[#f5f5f7] border border-[#0071e3] rounded-lg px-2 py-0.5 focus:outline-none w-48"
+          />
+        </template>
+        <template v-else>
+          <h1 @dblclick="startRename" class="text-sm font-semibold text-[#1d1d1f] truncate cursor-pointer hover:text-[#0071e3] transition-colors" title="Double-click to rename">
+            {{ room?.name ?? 'Chat' }}
+          </h1>
+        </template>
         <div v-if="roomsStore.connectedUsers.length > 0" class="flex items-center gap-1.5 flex-shrink-0">
           <div class="w-1.5 h-1.5 rounded-full bg-[#34c759]"></div>
           <span class="text-xs text-[#6e6e73]">{{ roomsStore.connectedUsers.length }} online</span>

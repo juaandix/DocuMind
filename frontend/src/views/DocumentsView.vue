@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useDocumentsStore } from '@/stores/documents.store'
 import type { DocumentStatus } from '@/types/document'
 
@@ -7,8 +7,18 @@ const store = useDocumentsStore()
 const search = ref('')
 const statusFilter = ref<DocumentStatus | 'ALL'>('ALL')
 const deleting = ref<string | null>(null)
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => store.fetchDocuments())
+onMounted(async () => {
+  await store.fetchDocuments()
+  // Poll every 5s while documents are being processed
+  pollTimer = setInterval(async () => {
+    const hasProcessing = store.documents.some(d => d.status === 'PROCESSING' || d.status === 'UPLOADING')
+    if (hasProcessing) await store.fetchDocuments()
+  }, 5000)
+})
+
+onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
 const filtered = computed(() =>
   store.documents.filter(d => {

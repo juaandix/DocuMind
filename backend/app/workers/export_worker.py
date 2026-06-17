@@ -47,14 +47,8 @@ async def _export_chat_pdf_async(room_id: str, workspace_id: str, requested_by: 
     pdf_bytes = _build_pdf(room.get("name", "Chat Export"), messages, author_cache, requester_name)
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    key = f"exports/{workspace_id}/{room_id}_{timestamp}.pdf"
-    storage._ensure_bucket()
-    storage._client.put_object(
-        Bucket=storage._bucket,
-        Key=key,
-        Body=pdf_bytes,
-        ContentType="application/pdf",
-    )
+    filename = f"chat_export_{room_id}_{timestamp}.pdf"
+    key = await storage.upload(pdf_bytes, filename, "application/pdf")
 
     export_doc = {
         "room_id": ObjectId(room_id),
