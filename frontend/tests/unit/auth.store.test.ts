@@ -60,6 +60,7 @@ describe('useAuthStore', () => {
   it('fetchMe sets user from API', async () => {
     const mockUser = { id: '1', email: 'me@example.com', full_name: 'Me', role: 'MEMBER', workspace_id: 'ws1', avatar_url: null }
     vi.mocked(api.get).mockResolvedValueOnce({ data: mockUser })
+    localStorage.setItem('access_token', 'fake-token')
 
     const store = useAuthStore()
     await store.fetchMe()
