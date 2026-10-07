@@ -79,3 +79,29 @@ async def test_me_authenticated(client, auth_headers):
 async def test_protected_route_unauthorized(client):
     resp = await client.get("/api/v1/auth/me")
     assert resp.status_code == 401
+
+
+async def test_token_form_login(client):
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "form@example.com",
+            "password": "mypassword",
+            "full_name": "Form User",
+            "workspace_name": "Form WS",
+        },
+    )
+    resp = await client.post(
+        "/api/v1/auth/token",
+        data={"username": "form@example.com", "password": "mypassword"},
+    )
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+
+
+async def test_token_form_login_wrong_password(client):
+    resp = await client.post(
+        "/api/v1/auth/token",
+        data={"username": "nobody@example.com", "password": "wrong"},
+    )
+    assert resp.status_code == 401

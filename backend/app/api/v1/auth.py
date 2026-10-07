@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form
+from pydantic import BaseModel, Field
 from slugify import slugify
 
 from app.core.dependencies import get_current_user
@@ -14,8 +15,6 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
-from pydantic import BaseModel, Field
-
 from app.models.user import TokenResponse, UserInDB, UserLogin, UserPublic, UserRegister, UserRole
 
 
@@ -26,6 +25,7 @@ class UpdateMe(BaseModel):
 class UpdatePassword(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8)
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -78,17 +78,27 @@ async def register(body: UserRegister):
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(body: UserLogin):
+async def _authenticate(email: str, password: str) -> TokenResponse:
     db = get_db()
-    user_doc = await db.users.find_one({"email": body.email, "is_active": True})
-    if not user_doc or not verify_password(body.password, user_doc["hashed_password"]):
+    user_doc = await db.users.find_one({"email": email, "is_active": True})
+    if not user_doc or not verify_password(password, user_doc["hashed_password"]):
         raise UnauthorizedError("Invalid credentials")
     user_id = str(user_doc["_id"])
     return TokenResponse(
         access_token=create_access_token(user_id),
         refresh_token=create_refresh_token(user_id),
     )
+
+
+@router.post("/token", response_model=TokenResponse)
+async def token_login(username: str = Form(...), password: str = Form(...)):
+    """OAuth2 password flow (form-encoded) — for Swagger/CLI clients. `username` is the email."""
+    return await _authenticate(username, password)
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(body: UserLogin):
+    return await _authenticate(body.email, body.password)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -144,9 +154,15 @@ async def update_me(body: UpdateMe, current_user: UserInDB = Depends(get_current
 async def change_password(body: UpdatePassword, current_user: UserInDB = Depends(get_current_user)):
     if not verify_password(body.current_password, current_user.hashed_password):
         from app.core.exceptions import UnprocessableError
+
         raise UnprocessableError("Current password is incorrect")
     db = get_db()
     await db.users.update_one(
         {"_id": ObjectId(current_user.id)},
-        {"$set": {"hashed_password": hash_password(body.new_password), "updated_at": datetime.now(UTC)}},
+        {
+            "$set": {
+                "hashed_password": hash_password(body.new_password),
+                "updated_at": datetime.now(UTC),
+            }
+        },
     )
