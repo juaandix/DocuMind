@@ -44,9 +44,12 @@ async function start() {
   })
 }
 
-start().catch((err) => {
-  logger.error('Failed to start notification service', { error: err.message })
-  process.exit(1)
-})
+// Only boot the server when run directly — tests import `app` without side effects
+if (require.main === module) {
+  start().catch((err) => {
+    logger.error('Failed to start notification service', { error: err.message })
+    process.exit(1)
+  })
+}
 
 module.exports = app
