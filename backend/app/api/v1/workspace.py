@@ -73,7 +73,11 @@ async def update_member_role(
         raise UnprocessableError("Invalid role")
 
     result = await db.users.find_one_and_update(
-        {"_id": ObjectId(user_id), "workspace_id": ObjectId(current_user.workspace_id), "is_active": True},
+        {
+            "_id": ObjectId(user_id),
+            "workspace_id": ObjectId(current_user.workspace_id),
+            "is_active": True,
+        },
         {"$set": {"role": new_role}},
         return_document=True,
     )
@@ -102,53 +106,64 @@ async def invite_member(
     db = get_db()
 
     # Already a member
-    existing = await db.users.find_one({
-        "email": body.email,
-        "workspace_id": ObjectId(current_user.workspace_id),
-        "is_active": True,
-    })
+    existing = await db.users.find_one(
+        {
+            "email": body.email,
+            "workspace_id": ObjectId(current_user.workspace_id),
+            "is_active": True,
+        }
+    )
     if existing:
         raise ConflictError("This email is already a member of the workspace")
 
     # Pending invite
-    pending = await db.invites.find_one({
-        "email": body.email,
-        "workspace_id": ObjectId(current_user.workspace_id),
-        "used": False,
-        "expires_at": {"$gt": datetime.utcnow()},
-    })
+    pending = await db.invites.find_one(
+        {
+            "email": body.email,
+            "workspace_id": ObjectId(current_user.workspace_id),
+            "used": False,
+            "expires_at": {"$gt": datetime.utcnow()},
+        }
+    )
     if pending:
         raise ConflictError("An invite has already been sent to this email")
 
     ws = await db.workspaces.find_one({"_id": ObjectId(current_user.workspace_id)})
     token = secrets.token_urlsafe(32)
 
-    await db.invites.insert_one({
-        "token": token,
-        "email": body.email,
-        "role": body.role,
-        "workspace_id": ObjectId(current_user.workspace_id),
-        "inviter_id": ObjectId(current_user.id),
-        "expires_at": datetime.utcnow() + timedelta(days=7),
-        "used": False,
-        "created_at": datetime.utcnow(),
-    })
+    await db.invites.insert_one(
+        {
+            "token": token,
+            "email": body.email,
+            "role": body.role,
+            "workspace_id": ObjectId(current_user.workspace_id),
+            "inviter_id": ObjectId(current_user.id),
+            "expires_at": datetime.utcnow() + timedelta(days=7),
+            "used": False,
+            "created_at": datetime.utcnow(),
+        }
+    )
 
     redis = get_redis()
-    await redis.publish("notifications", json.dumps({
-        "type": "workspace_invite",
-        "workspace_id": current_user.workspace_id,
-        "user_id": current_user.id,
-        "userEmail": body.email,
-        "userName": "Guest",
-        "metadata": {
-            "inviterName": current_user.full_name,
-            "workspaceName": ws["name"] if ws else "",
-            "inviteToken": token,
-        },
-        "title": "Workspace invitation sent",
-        "body": f"Invite sent to {body.email}",
-    }))
+    await redis.publish(
+        "notifications",
+        json.dumps(
+            {
+                "type": "workspace_invite",
+                "workspace_id": current_user.workspace_id,
+                "user_id": current_user.id,
+                "userEmail": body.email,
+                "userName": "Guest",
+                "metadata": {
+                    "inviterName": current_user.full_name,
+                    "workspaceName": ws["name"] if ws else "",
+                    "inviteToken": token,
+                },
+                "title": "Workspace invitation sent",
+                "body": f"Invite sent to {body.email}",
+            }
+        ),
+    )
 
     return {"token": token}
 
@@ -156,11 +171,13 @@ async def invite_member(
 @router.get("/invite/{token}")
 async def get_invite_info(token: str):
     db = get_db()
-    invite = await db.invites.find_one({
-        "token": token,
-        "used": False,
-        "expires_at": {"$gt": datetime.utcnow()},
-    })
+    invite = await db.invites.find_one(
+        {
+            "token": token,
+            "used": False,
+            "expires_at": {"$gt": datetime.utcnow()},
+        }
+    )
     if not invite:
         raise NotFoundError("Invite not found or expired")
 
@@ -178,11 +195,13 @@ async def get_invite_info(token: str):
 @router.post("/invite/{token}/accept", status_code=201)
 async def accept_invite(token: str, body: InviteAccept):
     db = get_db()
-    invite = await db.invites.find_one({
-        "token": token,
-        "used": False,
-        "expires_at": {"$gt": datetime.utcnow()},
-    })
+    invite = await db.invites.find_one(
+        {
+            "token": token,
+            "used": False,
+            "expires_at": {"$gt": datetime.utcnow()},
+        }
+    )
     if not invite:
         raise NotFoundError("Invite not found or expired")
 
@@ -190,16 +209,18 @@ async def accept_invite(token: str, body: InviteAccept):
     if existing:
         raise ConflictError("An account with this email already exists")
 
-    result = await db.users.insert_one({
-        "email": invite["email"],
-        "hashed_password": hash_password(body.password),
-        "full_name": body.full_name,
-        "workspace_id": invite["workspace_id"],
-        "role": invite["role"],
-        "is_active": True,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    })
+    result = await db.users.insert_one(
+        {
+            "email": invite["email"],
+            "hashed_password": hash_password(body.password),
+            "full_name": body.full_name,
+            "workspace_id": invite["workspace_id"],
+            "role": invite["role"],
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+    )
 
     await db.invites.update_one(
         {"token": token},

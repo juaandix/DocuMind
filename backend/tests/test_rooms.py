@@ -17,8 +17,12 @@ async def test_create_room(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_list_rooms(client, auth_headers):
-    await client.post("/api/v1/rooms/", headers=auth_headers, json={"name": "Room A", "document_ids": []})
-    await client.post("/api/v1/rooms/", headers=auth_headers, json={"name": "Room B", "document_ids": []})
+    await client.post(
+        "/api/v1/rooms/", headers=auth_headers, json={"name": "Room A", "document_ids": []}
+    )
+    await client.post(
+        "/api/v1/rooms/", headers=auth_headers, json={"name": "Room B", "document_ids": []}
+    )
 
     resp = await client.get("/api/v1/rooms/", headers=auth_headers)
     assert resp.status_code == 200
@@ -40,6 +44,7 @@ async def test_get_room(client, auth_headers):
 @pytest.mark.asyncio
 async def test_get_room_not_found(client, auth_headers):
     from bson import ObjectId
+
     resp = await client.get(f"/api/v1/rooms/{ObjectId()}", headers=auth_headers)
     assert resp.status_code == 404
 
@@ -94,9 +99,16 @@ async def test_rooms_isolated_between_workspaces(client, auth_headers):
 
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "other2@example.com", "password": "pass1234", "full_name": "Other", "workspace_name": "WS2"},
+        json={
+            "email": "other2@example.com",
+            "password": "pass1234",
+            "full_name": "Other",
+            "workspace_name": "WS2",
+        },
     )
-    login2 = await client.post("/api/v1/auth/login", json={"email": "other2@example.com", "password": "pass1234"})
+    login2 = await client.post(
+        "/api/v1/auth/login", json={"email": "other2@example.com", "password": "pass1234"}
+    )
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
 
     resp = await client.get(f"/api/v1/rooms/{room_id}", headers=headers2)

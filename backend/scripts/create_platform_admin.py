@@ -52,7 +52,7 @@ async def main(email: str, password: str) -> None:
         print(f"✓ Created PLATFORM_ADMIN: {email}")
 
     client.close()
-    print(f"  Admin panel → http://localhost:4200")
+    print("  Admin panel → http://localhost:4200")
     print(f"  Email:    {email}")
     print(f"  Password: {password}")
 

@@ -33,7 +33,9 @@ async def _export_chat_pdf_async(room_id: str, workspace_id: str, requested_by: 
     cursor = db.messages.find({"room_id": ObjectId(room_id)}).sort("created_at", 1)
     messages = [m async for m in cursor]
 
-    requester = await db.users.find_one({"_id": ObjectId(requested_by)}, {"email": 1, "full_name": 1})
+    requester = await db.users.find_one(
+        {"_id": ObjectId(requested_by)}, {"email": 1, "full_name": 1}
+    )
     requester_name = requester.get("full_name", "Unknown") if requester else "Unknown"
     requester_email = requester.get("email", "") if requester else ""
 
@@ -64,19 +66,32 @@ async def _export_chat_pdf_async(room_id: str, workspace_id: str, requested_by: 
     redis = get_redis()
     await redis.publish(
         "notifications",
-        json.dumps({
-            "type": "export_ready",
-            "workspace_id": workspace_id,
-            "user_id": requested_by,
-            "userEmail": requester_email,
-            "userName": requester_name,
-            "metadata": {"room_id": room_id, "export_id": export_id},
-            "title": "Export ready",
-            "body": f"Your PDF export for '{room.get('name')}' is ready to download.",
-        }),
+        json.dumps(
+            {
+                "type": "export_ready",
+                "workspace_id": workspace_id,
+                "user_id": requested_by,
+                "userEmail": requester_email,
+                "userName": requester_name,
+                "metadata": {"room_id": room_id, "export_id": export_id},
+                "title": "Export ready",
+                "body": f"Your PDF export for '{room.get('name')}' is ready to download.",
+            }
+        ),
     )
 
     logger.info("PDF export complete — room=%s export=%s", room_id, export_id)
+
+
+# PDF layout (points) and colors (RGB 0-1)
+W, H = 595, 842  # A4 portrait
+ML, MR = 55, 540  # left / right margins
+LINE_H = 14
+WRAP_CHARS = 88
+
+INDIGO = (0.31, 0.275, 0.898)
+GRAY = (0.42, 0.447, 0.502)
+DARK = (0.12, 0.12, 0.12)
 
 
 def _build_pdf(
@@ -86,15 +101,6 @@ def _build_pdf(
     requester_name: str,
 ) -> bytes:
     import fitz  # PyMuPDF
-
-    W, H = 595, 842  # A4 portrait
-    ML, MR = 55, 540  # left / right margins
-    LINE_H = 14
-    WRAP_CHARS = 88
-
-    INDIGO = (0.31, 0.275, 0.898)
-    GRAY = (0.42, 0.447, 0.502)
-    DARK = (0.12, 0.12, 0.12)
 
     doc = fitz.open()
 

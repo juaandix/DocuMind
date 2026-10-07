@@ -30,9 +30,7 @@ async def _process_document_async(document_id: str, workspace_id: str):
             logger.error("Document %s not found", document_id)
             return
 
-        await db.documents.update_one(
-            {"_id": doc_oid}, {"$set": {"status": "PROCESSING"}}
-        )
+        await db.documents.update_one({"_id": doc_oid}, {"$set": {"status": "PROCESSING"}})
 
         # Download from S3/MinIO
         file_bytes = await storage.download(doc["s3_key"])
@@ -69,37 +67,44 @@ async def _process_document_async(document_id: str, workspace_id: str):
         )
 
         # Notify WebSocket subscribers
-        from app.redis_client import get_redis
         import json
+
+        from app.redis_client import get_redis
 
         redis = get_redis()
         await redis.publish(
             f"workspace:{workspace_id}",
-            json.dumps({
-                "type": "document_ready",
-                "document_id": document_id,
-                "name": doc["original_name"],
-            }),
+            json.dumps(
+                {
+                    "type": "document_ready",
+                    "document_id": document_id,
+                    "name": doc["original_name"],
+                }
+            ),
         )
 
         # Notify Notification Service via shared Redis channel
-        uploader = await db.users.find_one({"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1})
+        uploader = await db.users.find_one(
+            {"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1}
+        )
         await redis.publish(
             "notifications",
-            json.dumps({
-                "type": "document_ready",
-                "workspace_id": workspace_id,
-                "user_id": str(doc["uploaded_by"]),
-                "userEmail": uploader["email"] if uploader else "",
-                "userName": uploader["full_name"] if uploader else "",
-                "metadata": {
-                    "documentId": document_id,
-                    "documentName": doc["original_name"],
-                    "chunkCount": len(chunk_docs),
-                },
-                "title": f'"{doc["original_name"]}" está listo para consultar',
-                "body": f"Se han indexado {len(chunk_docs)} fragmentos.",
-            }),
+            json.dumps(
+                {
+                    "type": "document_ready",
+                    "workspace_id": workspace_id,
+                    "user_id": str(doc["uploaded_by"]),
+                    "userEmail": uploader["email"] if uploader else "",
+                    "userName": uploader["full_name"] if uploader else "",
+                    "metadata": {
+                        "documentId": document_id,
+                        "documentName": doc["original_name"],
+                        "chunkCount": len(chunk_docs),
+                    },
+                    "title": f'"{doc["original_name"]}" está listo para consultar',
+                    "body": f"Se han indexado {len(chunk_docs)} fragmentos.",
+                }
+            ),
         )
 
     except Exception as exc:
@@ -110,28 +115,36 @@ async def _process_document_async(document_id: str, workspace_id: str):
         )
         # Notify error via Notification Service
         try:
-            from app.redis_client import get_redis
             import json
+
+            from app.redis_client import get_redis
+
             redis = get_redis()
-            doc = await db.documents.find_one({"_id": doc_oid}, {"uploaded_by": 1, "original_name": 1})
+            doc = await db.documents.find_one(
+                {"_id": doc_oid}, {"uploaded_by": 1, "original_name": 1}
+            )
             if doc:
-                uploader = await db.users.find_one({"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1})
+                uploader = await db.users.find_one(
+                    {"_id": doc["uploaded_by"]}, {"email": 1, "full_name": 1}
+                )
                 await redis.publish(
                     "notifications",
-                    json.dumps({
-                        "type": "document_error",
-                        "workspace_id": workspace_id,
-                        "user_id": str(doc["uploaded_by"]),
-                        "userEmail": uploader["email"] if uploader else "",
-                        "userName": uploader["full_name"] if uploader else "",
-                        "metadata": {
-                            "documentId": document_id,
-                            "documentName": doc["original_name"],
-                            "errorMessage": str(exc),
-                        },
-                        "title": f'Error al procesar "{doc["original_name"]}"',
-                        "body": str(exc),
-                    }),
+                    json.dumps(
+                        {
+                            "type": "document_error",
+                            "workspace_id": workspace_id,
+                            "user_id": str(doc["uploaded_by"]),
+                            "userEmail": uploader["email"] if uploader else "",
+                            "userName": uploader["full_name"] if uploader else "",
+                            "metadata": {
+                                "documentId": document_id,
+                                "documentName": doc["original_name"],
+                                "errorMessage": str(exc),
+                            },
+                            "title": f'Error al procesar "{doc["original_name"]}"',
+                            "body": str(exc),
+                        }
+                    ),
                 )
         except Exception:
             logger.exception("Failed to publish document_error notification")
@@ -204,13 +217,9 @@ async def _generate_embeddings(chunks: list[dict], settings) -> list[list[float]
         # Voyage embeddings via LangChain
         from langchain_community.embeddings import VoyageEmbeddings
 
-        embedder = VoyageEmbeddings(
-            voyage_api_key=settings.anthropic_api_key, model="voyage-3"
-        )
+        embedder = VoyageEmbeddings(voyage_api_key=settings.anthropic_api_key, model="voyage-3")
     else:
         from langchain_openai import OpenAIEmbeddings
 
-        embedder = OpenAIEmbeddings(
-            api_key=settings.openai_api_key, model=settings.embedding_model
-        )
+        embedder = OpenAIEmbeddings(api_key=settings.openai_api_key, model=settings.embedding_model)
     return await embedder.aembed_documents(texts)

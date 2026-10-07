@@ -5,7 +5,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_list_empty(client, auth_headers):
-    resp = await client.get("/api/v1/documents", headers=auth_headers)
+    resp = await client.get("/api/v1/documents/", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -53,6 +53,7 @@ async def test_get_document(client, auth_headers):
 @pytest.mark.asyncio
 async def test_get_document_not_found(client, auth_headers):
     from bson import ObjectId
+
     fake_id = str(ObjectId())
     resp = await client.get(f"/api/v1/documents/{fake_id}", headers=auth_headers)
     assert resp.status_code == 404
@@ -119,9 +120,16 @@ async def test_document_isolated_between_workspaces(client, auth_headers):
     # Register and login as user 2 (different workspace)
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "other@example.com", "password": "pass1234", "full_name": "Other", "workspace_name": "Other WS"},
+        json={
+            "email": "other@example.com",
+            "password": "pass1234",
+            "full_name": "Other",
+            "workspace_name": "Other WS",
+        },
     )
-    login2 = await client.post("/api/v1/auth/login", json={"email": "other@example.com", "password": "pass1234"})
+    login2 = await client.post(
+        "/api/v1/auth/login", json={"email": "other@example.com", "password": "pass1234"}
+    )
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
 
     resp = await client.get(f"/api/v1/documents/{doc_id}", headers=headers2)

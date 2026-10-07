@@ -117,13 +117,21 @@ async def test_update_member_role(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_member_update_workspace_forbidden(client):
+async def test_member_update_workspace_forbidden(client, auth_headers):
     # Member role cannot update workspace
-    await client.post(
-        "/api/v1/auth/register",
-        json={"email": "member@example.com", "password": "pass1234", "full_name": "Member", "workspace_name": "MWS"},
+    invite = await client.post(
+        "/api/v1/workspace/members/invite",
+        headers=auth_headers,
+        json={"email": "member@example.com", "role": "MEMBER"},
     )
-    login = await client.post("/api/v1/auth/login", json={"email": "member@example.com", "password": "pass1234"})
+    token = invite.json()["token"]
+    await client.post(
+        f"/api/v1/workspace/invite/{token}/accept",
+        json={"full_name": "Member", "password": "pass1234"},
+    )
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "member@example.com", "password": "pass1234"}
+    )
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     resp = await client.patch("/api/v1/workspace/", headers=headers, json={"name": "Hacked"})

@@ -27,8 +27,12 @@ async def platform_stats(_: UserInDB = Depends(require_platform_admin)):
     active_workspaces = await db.workspaces.count_documents({"status": "ACTIVE"})
     total_users = await db.users.count_documents({})
     total_documents = await db.documents.count_documents({})
-    processed_today = await db.documents.count_documents({"status": "READY", "processed_at": {"$gte": today}})
-    failed_today = await db.celery_jobs.count_documents({"status": "FAILURE", "finished_at": {"$gte": today}})
+    processed_today = await db.documents.count_documents(
+        {"status": "READY", "processed_at": {"$gte": today}}
+    )
+    failed_today = await db.celery_jobs.count_documents(
+        {"status": "FAILURE", "finished_at": {"$gte": today}}
+    )
     pending_jobs = await db.celery_jobs.count_documents({"status": {"$in": ["PENDING", "STARTED"]}})
 
     storage_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$size_bytes"}}}]
@@ -63,17 +67,19 @@ async def list_workspaces(
         member_count = await db.users.count_documents({"workspace_id": w["_id"]})
         doc_count = await db.documents.count_documents({"workspace_id": w["_id"]})
         owner = await db.users.find_one({"_id": w.get("owner_id")}, {"email": 1})
-        workspaces.append({
-            "id": w_id,
-            "name": w.get("name"),
-            "plan": w.get("plan", "FREE"),
-            "status": w.get("status", "ACTIVE"),
-            "owner_email": owner["email"] if owner else "",
-            "member_count": member_count,
-            "document_count": doc_count,
-            "storage_bytes": w.get("storage_bytes", 0),
-            "created_at": w.get("created_at"),
-        })
+        workspaces.append(
+            {
+                "id": w_id,
+                "name": w.get("name"),
+                "plan": w.get("plan", "FREE"),
+                "status": w.get("status", "ACTIVE"),
+                "owner_email": owner["email"] if owner else "",
+                "member_count": member_count,
+                "document_count": doc_count,
+                "storage_bytes": w.get("storage_bytes", 0),
+                "created_at": w.get("created_at"),
+            }
+        )
     return {"data": workspaces, "total": total, "page": page, "limit": limit}
 
 
@@ -102,6 +108,7 @@ async def change_plan(
     plan = body.get("plan")
     if plan not in ("FREE", "PRO"):
         from app.core.exceptions import UnprocessableError
+
         raise UnprocessableError("Plan must be FREE or PRO")
 
     db = get_db()
@@ -127,23 +134,27 @@ async def list_users(
     if email:
         query["email"] = {"$regex": email, "$options": "i"}
 
-    cursor = db.users.find(query, {"hashed_password": 0}).skip(skip).limit(limit).sort("created_at", -1)
+    cursor = (
+        db.users.find(query, {"hashed_password": 0}).skip(skip).limit(limit).sort("created_at", -1)
+    )
     users = []
     async for u in cursor:
         ws = None
         if u.get("workspace_id"):
             ws = await db.workspaces.find_one({"_id": u["workspace_id"]}, {"name": 1})
-        users.append({
-            "id": str(u["_id"]),
-            "email": u["email"],
-            "full_name": u["full_name"],
-            "workspace_id": str(u["workspace_id"]) if u.get("workspace_id") else None,
-            "workspace_name": ws["name"] if ws else "",
-            "role": u.get("role"),
-            "is_active": u.get("is_active", True),
-            "last_login": u.get("last_login"),
-            "created_at": u.get("created_at"),
-        })
+        users.append(
+            {
+                "id": str(u["_id"]),
+                "email": u["email"],
+                "full_name": u["full_name"],
+                "workspace_id": str(u["workspace_id"]) if u.get("workspace_id") else None,
+                "workspace_name": ws["name"] if ws else "",
+                "role": u.get("role"),
+                "is_active": u.get("is_active", True),
+                "last_login": u.get("last_login"),
+                "created_at": u.get("created_at"),
+            }
+        )
     return users
 
 
@@ -163,17 +174,19 @@ async def list_jobs(
     cursor = db.celery_jobs.find({}).skip(skip).limit(limit).sort("started_at", -1)
     jobs = []
     async for j in cursor:
-        jobs.append({
-            "id": str(j["_id"]),
-            "task_name": j.get("task_name"),
-            "status": j.get("status"),
-            "document_id": str(j["document_id"]) if j.get("document_id") else None,
-            "workspace_id": str(j["workspace_id"]) if j.get("workspace_id") else None,
-            "started_at": j.get("started_at"),
-            "finished_at": j.get("finished_at"),
-            "duration_seconds": j.get("duration_seconds"),
-            "error": j.get("error"),
-        })
+        jobs.append(
+            {
+                "id": str(j["_id"]),
+                "task_name": j.get("task_name"),
+                "status": j.get("status"),
+                "document_id": str(j["document_id"]) if j.get("document_id") else None,
+                "workspace_id": str(j["workspace_id"]) if j.get("workspace_id") else None,
+                "started_at": j.get("started_at"),
+                "finished_at": j.get("finished_at"),
+                "duration_seconds": j.get("duration_seconds"),
+                "error": j.get("error"),
+            }
+        )
     return jobs
 
 
@@ -188,16 +201,18 @@ async def list_platform_notifications(
     result = []
     async for n in cursor:
         user = await db.users.find_one({"_id": n.get("user_id")}, {"email": 1})
-        result.append({
-            "id": str(n["_id"]),
-            "user_id": str(n.get("user_id", "")),
-            "user_email": user["email"] if user else "",
-            "type": n.get("type"),
-            "title": n.get("title"),
-            "read": n.get("read", False),
-            "email_sent": n.get("email_sent", False),
-            "created_at": n.get("created_at"),
-        })
+        result.append(
+            {
+                "id": str(n["_id"]),
+                "user_id": str(n.get("user_id", "")),
+                "user_email": user["email"] if user else "",
+                "type": n.get("type"),
+                "title": n.get("title"),
+                "read": n.get("read", False),
+                "email_sent": n.get("email_sent", False),
+                "created_at": n.get("created_at"),
+            }
+        )
     return result
 
 
@@ -218,9 +233,11 @@ async def stats_history(
         new_users = await db.users.count_documents(
             {"created_at": {"$gte": day_start, "$lt": day_end}}
         )
-        history.append({
-            "date": day_start.strftime("%b %d"),
-            "docs_processed": docs_processed,
-            "new_users": new_users,
-        })
+        history.append(
+            {
+                "date": day_start.strftime("%b %d"),
+                "docs_processed": docs_processed,
+                "new_users": new_users,
+            }
+        )
     return history

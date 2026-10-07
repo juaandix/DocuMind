@@ -9,8 +9,8 @@ from app.core.exceptions import NotFoundError, UnprocessableError
 from app.database import get_db
 from app.models.document import DocumentPublic, TagsUpdate
 from app.models.user import UserInDB, UserRole
-from app.services.storage_service import StorageService
 from app.redis_client import get_redis
+from app.services.storage_service import StorageService
 from app.workers.document_processor import process_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
