@@ -1,0 +1,10 @@
+{
+  "total_workspaces": 12,
+  "active_workspaces": 10,
+  "total_users": 48,
+  "total_documents": 230,
+  "documents_processed_today": 7,
+  "storage_total_bytes": 524288000,
+  "celery_jobs_pending": 3,
+  "celery_jobs_failed_today": 1
+}
