@@ -25,7 +25,7 @@ jobs:
         run: pip install uv
       - name: Install dependencies
         working-directory: backend
-        run: uv sync
+        run: uv sync --extra dev
       - name: Lint
         working-directory: backend
         run: uv run ruff check .
@@ -75,6 +75,30 @@ jobs:
       - name: Unit tests
         working-directory: frontend
         run: npm run test
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      # API and WebSockets are mocked in tests/e2e/mock-api.ts; Playwright starts Vite itself
+      - name: E2E tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: frontend/test-results
 
   admin-panel-tests:
     runs-on: ubuntu-latest
