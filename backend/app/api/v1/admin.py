@@ -18,13 +18,38 @@ def _str_ids(doc: dict, *fields: str) -> dict:
     return doc
 
 
+def _workspace_oid(workspace_id: str) -> ObjectId:
+    if not ObjectId.is_valid(workspace_id):
+        raise NotFoundError("Workspace not found")
+    return ObjectId(workspace_id)
+
+
+async def _workspace_summary(db, w: dict) -> dict:
+    """Shape a workspace document as the admin panel's `Workspace` model."""
+    member_count = await db.users.count_documents({"workspace_id": w["_id"]})
+    doc_count = await db.documents.count_documents({"workspace_id": w["_id"]})
+    owner = await db.users.find_one({"_id": w.get("owner_id")}, {"email": 1})
+    return {
+        "id": str(w["_id"]),
+        "name": w.get("name"),
+        "plan": w.get("plan", "FREE"),
+        "status": w.get("status", "ACTIVE"),
+        "owner_email": owner["email"] if owner else "",
+        "member_count": member_count,
+        "document_count": doc_count,
+        "storage_bytes": w.get("storage_used_bytes", 0),
+        "created_at": w.get("created_at"),
+    }
+
+
 @router.get("/stats")
 async def platform_stats(_: UserInDB = Depends(require_platform_admin)):
     db = get_db()
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
     total_workspaces = await db.workspaces.count_documents({})
-    active_workspaces = await db.workspaces.count_documents({"status": "ACTIVE"})
+    # Workspaces created at registration have no `status` field — they count as active
+    active_workspaces = await db.workspaces.count_documents({"status": {"$ne": "SUSPENDED"}})
     total_users = await db.users.count_documents({})
     total_documents = await db.documents.count_documents({})
     processed_today = await db.documents.count_documents(
@@ -61,25 +86,7 @@ async def list_workspaces(
     skip = (page - 1) * limit
     total = await db.workspaces.count_documents({})
     cursor = db.workspaces.find({}).skip(skip).limit(limit).sort("created_at", -1)
-    workspaces = []
-    async for w in cursor:
-        w_id = str(w["_id"])
-        member_count = await db.users.count_documents({"workspace_id": w["_id"]})
-        doc_count = await db.documents.count_documents({"workspace_id": w["_id"]})
-        owner = await db.users.find_one({"_id": w.get("owner_id")}, {"email": 1})
-        workspaces.append(
-            {
-                "id": w_id,
-                "name": w.get("name"),
-                "plan": w.get("plan", "FREE"),
-                "status": w.get("status", "ACTIVE"),
-                "owner_email": owner["email"] if owner else "",
-                "member_count": member_count,
-                "document_count": doc_count,
-                "storage_bytes": w.get("storage_bytes", 0),
-                "created_at": w.get("created_at"),
-            }
-        )
+    workspaces = [await _workspace_summary(db, w) async for w in cursor]
     return {"data": workspaces, "total": total, "page": page, "limit": limit}
 
 
@@ -90,13 +97,13 @@ async def suspend_workspace(
 ):
     db = get_db()
     result = await db.workspaces.find_one_and_update(
-        {"_id": ObjectId(workspace_id)},
+        {"_id": _workspace_oid(workspace_id)},
         {"$set": {"status": "SUSPENDED", "updated_at": datetime.now(UTC)}},
         return_document=True,
     )
     if not result:
         raise NotFoundError("Workspace not found")
-    return {**result, "id": str(result.pop("_id"))}
+    return await _workspace_summary(db, result)
 
 
 @router.patch("/workspaces/{workspace_id}/plan")
@@ -113,13 +120,13 @@ async def change_plan(
 
     db = get_db()
     result = await db.workspaces.find_one_and_update(
-        {"_id": ObjectId(workspace_id)},
+        {"_id": _workspace_oid(workspace_id)},
         {"$set": {"plan": plan, "updated_at": datetime.now(UTC)}},
         return_document=True,
     )
     if not result:
         raise NotFoundError("Workspace not found")
-    return {**result, "id": str(result.pop("_id"))}
+    return await _workspace_summary(db, result)
 
 
 @router.get("/users")
