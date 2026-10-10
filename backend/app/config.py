@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/2"
 
     # Storage
-    storage_provider: str = "minio"  # minio | s3
+    storage_provider: str = "minio"  # minio | s3 | local
     s3_endpoint_url: str = "http://localhost:9000"
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"

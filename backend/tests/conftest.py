@@ -10,6 +10,7 @@ os.environ.setdefault("MONGODB_URL", "mongodb://localhost:27017")
 os.environ.setdefault("MONGODB_DB_NAME", "documind_test")
 os.environ.setdefault("LLM_PROVIDER", "openai")
 os.environ.setdefault("OPENAI_API_KEY", "sk-test")
+os.environ.setdefault("STORAGE_PROVIDER", "local")  # no MinIO needed in tests
 
 TEST_MONGO_URL = "mongodb://localhost:27017"
 TEST_DB_NAME = "documind_test"
