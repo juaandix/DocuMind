@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -87,3 +89,25 @@ jobs:
       - name: Unit tests
         working-directory: admin-panel
         run: npm run test:ci
+
+  admin-panel-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # API calls are stubbed with cy.intercept, so only the Angular dev server is needed
+      - name: Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: admin-panel
+          start: npx ng serve --port 4200
+          wait-on: "http://localhost:4200"
+          wait-on-timeout: 180
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: admin-panel/cypress/screenshots
