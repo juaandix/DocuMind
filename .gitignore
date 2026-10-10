@@ -37,3 +37,7 @@ Thumbs.db
 .ports.env
 backend/.env.ports
 admin-panel/proxy.conf.json
+
+# Playwright
+test-results/
+playwright-report/
