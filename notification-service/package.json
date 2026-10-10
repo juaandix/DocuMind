@@ -1,7 +1,7 @@
 {
   "name": "documind-notification-service",
   "version": "1.0.0",
-  "description": "DocuMind Notification Microservice — Node.js + Express",
+  "description": "DocuMind Notification Microservice \u2014 Node.js + Express",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -30,6 +30,9 @@
     "testEnvironment": "node",
     "testMatch": [
       "**/tests/**/*.test.js"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/setup-env.js"
     ]
   }
 }
