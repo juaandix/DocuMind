@@ -4,13 +4,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { onClickOutside, useEventListener } from '@vueuse/core'
 import {
   Bell, LogOut, Moon, Sun, Menu, X, CircleCheck, CircleAlert, Download, UserPlus, TriangleAlert, Search,
-  UserRound, Building2, ChevronDown,
+  UserRound, Building2, ChevronDown, Languages,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useWorkspaceStore } from '@/stores/workspace.store'
 import { useNotificationsStore } from '@/stores/notifications.store'
 import { useTheme } from '@/composables/useTheme'
+import { useI18n } from 'vue-i18n'
+import LocaleSwitch from '@/components/ui/LocaleSwitch.vue'
 import BrandMark from '@/components/ui/BrandMark.vue'
 import type { NotificationType } from '@/types/notification'
 
@@ -20,15 +22,16 @@ const auth = useAuthStore()
 const wsStore = useWorkspaceStore()
 const notifStore = useNotificationsStore()
 const { theme, toggle: toggleTheme } = useTheme()
+const { t } = useI18n()
 
-const workspaceName = computed(() => wsStore.workspace?.name ?? 'Workspace')
+const workspaceName = computed(() => wsStore.workspace?.name ?? t('common.workspace'))
 
 const nav = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/documents', label: 'Documents' },
-  { to: '/rooms', label: 'Chat Rooms' },
-  { to: '/settings/members', label: 'Members' },
-  { to: '/settings/workspace', label: 'Settings', match: ['/settings/workspace', '/settings/profile'] },
+  { to: '/dashboard', label: 'nav.dashboard' },
+  { to: '/documents', label: 'nav.documents' },
+  { to: '/rooms', label: 'nav.rooms' },
+  { to: '/settings/members', label: 'nav.members' },
+  { to: '/settings/workspace', label: 'nav.settings', match: ['/settings/workspace', '/settings/profile'] },
 ]
 
 function isActive(item: { to: string; match?: string[] }) {
@@ -82,11 +85,11 @@ onUnmounted(() => notifStore.cleanup())
 function formatRelTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return t('time.justNow')
+  if (mins < 60) return t('time.minutesAgo', { n: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+  if (hours < 24) return t('time.hoursAgo', { n: hours })
+  return t('time.daysAgo', { n: Math.floor(hours / 24) })
 }
 
 const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = {
@@ -103,29 +106,29 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
 
     <!-- Top bar -->
     <header class="relative z-30 flex h-14 shrink-0 items-center gap-2 bg-rail px-4 text-rail-ink lg:px-8">
-      <button class="-ml-1 rounded p-2 text-rail-ink-2 hover:text-white md:hidden" :aria-expanded="mobileOpen" aria-label="Open menu" @click="mobileOpen = !mobileOpen">
+      <button class="-ml-1 rounded p-2 text-rail-ink-2 hover:text-white md:hidden" :aria-expanded="mobileOpen"   :aria-label="$t('nav.openMenu')" @click="mobileOpen = !mobileOpen">
         <X v-if="mobileOpen" class="size-5" /><Menu v-else class="size-5" />
       </button>
 
-      <router-link to="/dashboard" class="mr-6 flex items-center gap-2.5" aria-label="DocuMind, go to dashboard">
+      <router-link to="/dashboard" class="mr-6 flex items-center gap-2.5" :aria-label="$t('nav.home')">
         <BrandMark :size="28" />
         <span class="font-display text-[20px] font-bold uppercase leading-none tracking-[0.06em] text-white">DocuMind</span>
       </router-link>
 
-      <nav aria-label="Main" class="hidden h-full items-stretch gap-6 md:flex">
+      <nav :aria-label="$t('nav.main')" class="hidden h-full items-stretch gap-6 md:flex">
         <router-link v-for="item in nav" :key="item.to" :to="item.to"
           :aria-current="isActive(item) ? 'page' : undefined"
           :class="[
             'flex items-center text-[14px]',
             isActive(item) ? 'font-semibold text-white shadow-[inset_0_-2px_0_var(--dm-alert)]' : 'font-medium text-rail-ink-2 hover:text-white',
-          ]">{{ item.label }}</router-link>
+          ]">{{ $t(item.label) }}</router-link>
       </nav>
 
       <form v-if="route.path !== '/documents'" role="search" class="ml-auto hidden lg:block" @submit.prevent="submitSearch">
         <label class="relative flex w-72 items-center">
-          <span class="sr-only">Search documents</span>
+          <span class="sr-only">{{ $t('nav.search') }}</span>
           <Search class="pointer-events-none absolute left-3 size-4 text-rail-ink-2" />
-          <input ref="searchInput" v-model="query" type="search" placeholder="Search documents"
+          <input ref="searchInput" v-model="query" type="search" :placeholder="$t('nav.search')"
             class="h-9 w-full rounded-[5px] border border-rail-2 bg-rail-2 pr-12 pl-9 text-[14px] text-white placeholder:text-rail-ink-2 focus:border-rail-ink-2 focus:ring-2 focus:ring-alert focus:outline-none" />
           <kbd class="pointer-events-none absolute right-2 rounded-[3px] border border-rail-ink-2/40 px-1.5 font-mono text-[11px] text-rail-ink-2">⌘K</kbd>
         </label>
@@ -133,12 +136,12 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
 
       <div :class="['flex items-center gap-1', route.path === '/documents' ? 'ml-auto' : 'ml-auto lg:ml-3']">
         <button class="press rounded p-2 text-rail-ink-2 hover:bg-rail-2 hover:text-white"
-          :aria-label="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'" @click="toggleTheme">
+          :aria-label="theme === 'dark' ? $t('nav.lightTheme') : $t('nav.darkTheme')" @click="toggleTheme">
           <Sun v-if="theme === 'dark'" class="size-[18px]" /><Moon v-else class="size-[18px]" />
         </button>
         <button class="press relative rounded p-2 text-rail-ink-2 hover:bg-rail-2 hover:text-white"
-          :aria-label="notifStore.unread > 0 ? `Notifications, ${notifStore.unread} unread` : 'Notifications'"
-          title="Notifications" @click="drawerOpen = true">
+          :aria-label="notifStore.unread > 0 ? $t('nav.notificationsUnread', { n: notifStore.unread }) : $t('nav.notifications')"
+          :title="$t('nav.notifications')" @click="drawerOpen = true">
           <Bell class="size-[18px]" :stroke-width="1.75" />
           <span v-if="notifStore.unread > 0"
             class="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-alert px-1 font-mono text-[11px] font-bold leading-none text-on-alert">
@@ -148,7 +151,7 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
 
         <div ref="userMenu" class="relative ml-2">
           <button class="press flex items-center gap-2 rounded-[5px] py-1 pr-1.5 pl-1 hover:bg-rail-2" :aria-expanded="userMenuOpen" aria-haspopup="menu"
-            :aria-label="`Account menu for ${auth.user?.full_name ?? 'you'}`" @click="userMenuOpen = !userMenuOpen">
+            :aria-label="$t('nav.accountMenu', { name: auth.user?.full_name ?? '' })" @click="userMenuOpen = !userMenuOpen">
             <span class="flex size-8 items-center justify-center rounded-[5px] bg-rail-2 font-mono text-[12px] font-semibold text-white">{{ initials }}</span>
             <ChevronDown class="size-3.5 text-rail-ink-2" />
           </button>
@@ -158,16 +161,20 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
             <div class="border-b border-line px-4 py-3">
               <p class="truncate text-[14px] font-semibold">{{ auth.user?.full_name }}</p>
               <p class="truncate text-[13px] text-ink-2">{{ auth.user?.email }}</p>
-              <p class="label mt-1.5">{{ workspaceName }} · {{ auth.user?.role }}</p>
+              <p class="label mt-1.5">{{ workspaceName }} · {{ auth.user?.role ? $t(`roles.${auth.user.role}`) : '' }}</p>
             </div>
             <router-link to="/settings/profile" role="menuitem" class="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-sunken">
-              <UserRound class="size-4 text-ink-2" />Profile
+              <UserRound class="size-4 text-ink-2" />{{ $t('nav.profile') }}
             </router-link>
             <router-link to="/settings/workspace" role="menuitem" class="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-sunken">
-              <Building2 class="size-4 text-ink-2" />Workspace settings
+              <Building2 class="size-4 text-ink-2" />{{ $t('nav.workspaceSettings') }}
             </router-link>
+            <div class="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
+              <span class="flex items-center gap-3 text-[14px]"><Languages class="size-4 text-ink-2" />{{ $t('nav.language') }}</span>
+              <LocaleSwitch />
+            </div>
             <button role="menuitem" class="flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left text-[14px] hover:bg-sunken" @click="handleLogout">
-              <LogOut class="size-4 text-ink-2" />Sign out
+              <LogOut class="size-4 text-ink-2" />{{ $t('nav.signOut') }}
             </button>
           </div>
           </Transition>
@@ -176,11 +183,11 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
 
       <!-- Mobile navigation -->
       <Transition name="menu">
-      <nav v-if="mobileOpen" aria-label="Main" class="origin-top absolute inset-x-0 top-full flex flex-col border-t border-rail-2 bg-rail px-4 pb-4 md:hidden">
+      <nav v-if="mobileOpen" :aria-label="$t('nav.main')" class="origin-top absolute inset-x-0 top-full flex flex-col border-t border-rail-2 bg-rail px-4 pb-4 md:hidden">
         <router-link v-for="item in nav" :key="item.to" :to="item.to"
           :aria-current="isActive(item) ? 'page' : undefined"
           :class="['flex min-h-11 items-center gap-3 border-b border-rail-2 text-[15px]', isActive(item) ? 'font-semibold text-white' : 'text-rail-ink-2']">
-          <span :class="['size-1.5 rounded-full', isActive(item) ? 'bg-alert' : 'bg-transparent']" />{{ item.label }}
+          <span :class="['size-1.5 rounded-full', isActive(item) ? 'bg-alert' : 'bg-transparent']" />{{ $t(item.label) }}
         </router-link>
       </nav>
       </Transition>
@@ -198,14 +205,14 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
         <section class="drawer-panel flex h-full w-full max-w-sm flex-col bg-surface shadow-raised" role="dialog" aria-modal="true" aria-labelledby="notif-title">
           <div class="flex items-center justify-between border-b border-line px-5 py-4">
             <div class="flex items-center gap-2">
-              <h2 id="notif-title" class="text-base font-semibold text-ink">Notifications</h2>
+              <h2 id="notif-title" class="text-base font-semibold text-ink">{{ $t('notifications.title') }}</h2>
               <span v-if="notifStore.unread > 0"
                 class="rounded-[3px] bg-alert px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-on-alert">{{ notifStore.unread }}</span>
             </div>
             <div class="flex items-center gap-2">
               <button v-if="notifStore.unread > 0" class="text-[13px] font-semibold text-ink underline-offset-4 hover:underline"
-                @click="notifStore.markAllRead()">Mark all read</button>
-              <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" aria-label="Close notifications" @click="drawerOpen = false">
+                @click="notifStore.markAllRead()">{{ $t('notifications.markAllRead') }}</button>
+              <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" :aria-label="$t('notifications.close')" @click="drawerOpen = false">
                 <X class="size-4" />
               </button>
             </div>
@@ -214,8 +221,8 @@ const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = 
           <div class="flex-1 overflow-y-auto">
             <div v-if="notifStore.items.length === 0" class="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
               <Bell class="mb-3 size-6 text-ink-3" :stroke-width="1.5" />
-              <p class="text-sm font-semibold text-ink">All caught up</p>
-              <p class="mt-1 text-[13px] text-ink-3">No notifications yet</p>
+              <p class="text-sm font-semibold text-ink">{{ $t('notifications.empty') }}</p>
+              <p class="mt-1 text-[13px] text-ink-3">{{ $t('notifications.emptyBody') }}</p>
             </div>
 
             <div v-for="n in notifStore.items" :key="n._id"

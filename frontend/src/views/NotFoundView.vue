@@ -16,12 +16,12 @@ const router = useRouter()
     <main class="flex flex-1 items-center justify-center px-4 py-16">
       <div class="grid w-full max-w-lg grid-cols-[1fr_120px] rounded-pass bg-surface shadow-pass">
         <div class="flex flex-col gap-2 p-6">
-          <p class="label">Status</p>
-          <h1 class="text-[24px] font-semibold tracking-[-0.015em] text-ink">Page not found</h1>
-          <p class="text-[14px] text-ink-2">The page you're looking for doesn't exist or has been moved.</p>
+          <p class="label">{{ $t('notFound.status') }}</p>
+          <h1 class="text-[24px] font-semibold tracking-[-0.015em] text-ink">{{ $t('notFound.title') }}</h1>
+          <p class="text-[14px] text-ink-2">{{ $t('notFound.body') }}</p>
           <div class="mt-4 flex flex-wrap gap-2">
-            <UiButton to="/dashboard">Dashboard</UiButton>
-            <UiButton variant="secondary" @click="router.back()">Go back</UiButton>
+            <UiButton to="/dashboard">{{ $t('nav.dashboard') }}</UiButton>
+            <UiButton variant="secondary" @click="router.back()">{{ $t('common.goBack') }}</UiButton>
           </div>
         </div>
         <div class="flex flex-col items-center justify-center border-l border-dashed border-line">

@@ -6,13 +6,6 @@ import type { DocumentStatus } from '@/types/document'
 // progress, filled red = error, filled yellow = changed since you last looked.
 const props = defineProps<{ status: DocumentStatus; changed?: boolean }>()
 
-const labels: Record<DocumentStatus, string> = {
-  UPLOADING: 'Uploading',
-  PROCESSING: 'Processing',
-  READY: 'Ready',
-  ERROR: 'Error',
-}
-
 const classes = computed(() => {
   if (props.changed) return 'bg-alert text-on-alert border-alert'
   switch (props.status) {
@@ -25,6 +18,6 @@ const classes = computed(() => {
 
 <template>
   <span :class="['inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap', classes]">
-    <span v-if="changed">Now</span>{{ labels[status] }}
+    <span v-if="changed">{{ $t('status.now') }}</span>{{ $t(`status.${status}`) }}
   </span>
 </template>

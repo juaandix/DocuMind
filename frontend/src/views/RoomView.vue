@@ -7,6 +7,7 @@ import StatusChip from '@/components/ui/StatusChip.vue'
 import SourcePass from '@/components/ui/SourcePass.vue'
 import UiAvatar from '@/components/ui/UiAvatar.vue'
 import { formatTime } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useDocumentsStore } from '@/stores/documents.store'
 import { useAuthStore } from '@/stores/auth.store'
@@ -16,6 +17,7 @@ const route = useRoute()
 const roomsStore = useRoomsStore()
 const docsStore = useDocumentsStore()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const roomId = computed(() => route.params.id as string)
 const inputText = ref('')
@@ -108,8 +110,8 @@ const sourceMsg = computed(() => {
 })
 
 function authorName(msg: Message) {
-  if (isOwnMessage(msg)) return 'You'
-  return roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name ?? 'Member'
+  if (isOwnMessage(msg)) return t('common.you')
+  return roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name ?? t('common.member')
 }
 
 function isOwnMessage(msg: Message) { return msg.author_id === authStore.user?.id }
@@ -167,12 +169,12 @@ function renderContent(text: string): string {
     <!-- Room header: identity segments, like the top of a pass -->
     <header class="flex shrink-0 flex-wrap items-stretch border-b border-line bg-surface">
       <div class="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 sm:px-6">
-        <router-link to="/rooms" class="shrink-0 rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" aria-label="Back to chat rooms">
+        <router-link to="/rooms" class="shrink-0 rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" :aria-label="$t('room.back')">
           <ArrowLeft class="size-5" />
         </router-link>
         <template v-if="editingName">
           <label class="min-w-0 flex-1">
-            <span class="sr-only">Room name</span>
+            <span class="sr-only">{{ $t('room.roomName') }}</span>
             <input v-model="pendingName" autofocus
               class="min-h-9 w-full max-w-sm rounded-[5px] border border-line-strong bg-surface px-2.5 text-[17px] font-semibold text-ink focus:ring-2 focus:ring-alert focus:outline-none"
               @keydown="onRenameKeydown" @blur="saveRename" />
@@ -180,7 +182,7 @@ function renderContent(text: string): string {
         </template>
         <template v-else>
           <h1 class="truncate text-[19px] font-semibold tracking-tight text-ink" @dblclick="startRename">{{ room?.name ?? 'Chat' }}</h1>
-          <button class="shrink-0 rounded p-1.5 text-ink-3 hover:bg-sunken hover:text-ink" aria-label="Rename room" title="Rename room" @click="startRename">
+          <button class="shrink-0 rounded p-1.5 text-ink-3 hover:bg-sunken hover:text-ink" :aria-label="$t('room.rename')" :title="$t('room.rename')" @click="startRename">
             <Pencil class="size-3.5" />
           </button>
         </template>
@@ -188,23 +190,23 @@ function renderContent(text: string): string {
 
       <dl class="hidden items-stretch sm:flex">
         <div class="flex flex-col justify-center border-l border-line px-5">
-          <dt class="label">Docs</dt>
+          <dt class="label">{{ $t('room.docs') }}</dt>
           <dd class="font-display text-[22px] font-semibold leading-none text-ink">{{ roomDocs.length }}</dd>
         </div>
         <div class="flex flex-col justify-center border-l border-line px-5">
-          <dt class="label">Here now</dt>
+          <dt class="label">{{ $t('room.hereNow') }}</dt>
           <dd class="font-display text-[22px] font-semibold leading-none text-ink">{{ Math.max(1, roomsStore.connectedUsers.length) }}</dd>
         </div>
       </dl>
 
       <div class="flex items-center gap-2 border-l border-line px-4">
         <span v-if="exportTaskId" class="inline-flex items-center gap-1.5 rounded-[4px] bg-alert px-2 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-alert" role="status">
-          <Check class="size-3.5" />Export queued
+          <Check class="size-3.5" />{{ $t('room.exportQueued') }}
         </span>
         <UiButton v-else variant="secondary" size="sm" :disabled="exporting" @click="handleExport">
-          <Download class="size-4" /><span class="max-sm:sr-only">Export PDF</span>
+          <Download class="size-4" /><span class="max-sm:sr-only">{{ $t('room.exportPdf') }}</span>
         </UiButton>
-        <button :aria-pressed="showInfo" aria-label="Toggle room panel"
+        <button :aria-pressed="showInfo" :aria-label="$t('room.togglePanel')"
           :class="['rounded p-2 xl:hidden', showInfo ? 'bg-primary text-on-primary' : 'text-ink-2 hover:bg-sunken hover:text-ink']"
           @click="showInfo = !showInfo">
           <PanelRight class="size-4" />
@@ -214,13 +216,13 @@ function renderContent(text: string): string {
 
     <div class="relative flex min-h-0 flex-1">
       <!-- Conversation -->
-      <section class="flex min-w-0 flex-1 flex-col" aria-label="Conversation">
+      <section class="flex min-w-0 flex-1 flex-col" :aria-label="$t('room.conversation')">
         <div ref="messagesEl" class="flex-1 overflow-y-auto">
           <div v-if="roomsStore.messages.length === 0 && !roomsStore.isAiTyping" class="flex h-full flex-col items-center justify-center px-4 py-16 text-center">
             <p class="font-display text-[44px] font-semibold leading-none text-ink">{{ roomDocs.length }}</p>
-            <p class="label mt-1">{{ roomDocs.length === 1 ? 'Document' : 'Documents' }} on board</p>
-            <p class="mt-4 text-base font-semibold text-ink">Ask anything</p>
-            <p class="mt-1 max-w-sm text-[14px] text-ink-2">Every answer cites the passages it was built from, so you can check them here.</p>
+            <p class="label mt-1">{{ $t('room.onBoard', roomDocs.length) }}</p>
+            <p class="mt-4 text-base font-semibold text-ink">{{ $t('room.askTitle') }}</p>
+            <p class="mt-1 max-w-sm text-[14px] text-ink-2">{{ $t('room.askBody') }}</p>
           </div>
 
           <ol class="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 sm:px-8">
@@ -234,7 +236,7 @@ function renderContent(text: string): string {
               <div v-if="msg.role === 'assistant'">
                 <div class="text-[16px] leading-[1.7] text-ink" v-html="renderContent(msg.content)"></div>
                 <div v-if="msg.sources?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span class="label mr-1">Sources</span>
+                  <span class="label mr-1">{{ $t('room.sources') }}</span>
                   <button v-for="(src, i) in msg.sources" :key="i"
                     :aria-pressed="sourceMsg?.id === msg.id && activeSource === i"
                     :title="src.document_name"
@@ -256,7 +258,7 @@ function renderContent(text: string): string {
               <div v-if="roomsStore.aiStreamBuffer" class="text-[16px] leading-[1.7] text-ink">
                 <span v-html="renderContent(roomsStore.aiStreamBuffer)"></span><span class="ml-0.5 inline-block h-4 w-2 bg-alert align-text-bottom" aria-hidden="true"></span>
               </div>
-              <p v-else class="text-[15px] text-ink-2">Reading {{ roomDocs.length }} document{{ roomDocs.length !== 1 ? 's' : '' }}…</p>
+              <p v-else class="text-[15px] text-ink-2">{{ $t('room.reading', { n: roomDocs.length }, roomDocs.length) }}</p>
               </div>
             </li>
           </ol>
@@ -267,17 +269,17 @@ function renderContent(text: string): string {
           <form class="mx-auto max-w-3xl" @submit.prevent="sendMessage">
             <div class="flex items-end gap-2 rounded-[6px] border border-line-strong bg-surface p-2 pl-4 focus-within:ring-2 focus-within:ring-alert">
               <label class="flex-1">
-                <span class="sr-only">Message</span>
+                <span class="sr-only">{{ $t('room.message') }}</span>
                 <textarea v-model="inputText" :disabled="roomsStore.isAiTyping" rows="1"
-                  placeholder="Ask anything about your documents…"
+                  :placeholder="$t('room.placeholder')"
                   class="max-h-32 min-h-10 w-full resize-none bg-transparent py-2 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none disabled:opacity-50"
                   style="field-sizing: content;" @keydown="onKeydown"></textarea>
               </label>
-              <UiButton type="submit" :disabled="!inputText.trim() || roomsStore.isAiTyping" aria-label="Send message">
-                <ArrowUp class="size-4" /><span class="max-sm:hidden">Send</span>
+              <UiButton type="submit" :disabled="!inputText.trim() || roomsStore.isAiTyping" :aria-label="$t('room.sendLabel')">
+                <ArrowUp class="size-4" /><span class="max-sm:hidden">{{ $t('room.send') }}</span>
               </UiButton>
             </div>
-            <p class="mt-1.5 px-1 text-[12px] text-ink-3">Enter to send · Shift+Enter for a new line</p>
+            <p class="mt-1.5 px-1 text-[12px] text-ink-3">{{ $t('room.hint') }}</p>
           </form>
         </div>
       </section>
@@ -287,16 +289,16 @@ function renderContent(text: string): string {
         'w-full max-w-[420px] shrink-0 flex-col overflow-y-auto border-l border-line bg-ground',
         'max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-20 max-xl:shadow-pass xl:flex',
         showInfo ? 'flex' : 'hidden',
-      ]" aria-label="Room panel">
+      ]" :aria-label="$t('room.panel')">
         <div class="flex items-center justify-between px-5 pt-5 xl:hidden">
-          <span class="label">Room panel</span>
-          <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" aria-label="Close room panel" @click="showInfo = false"><X class="size-4" /></button>
+          <span class="label">{{ $t('room.panel') }}</span>
+          <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" :aria-label="$t('room.closePanel')" @click="showInfo = false"><X class="size-4" /></button>
         </div>
 
         <section class="flex flex-col gap-3 p-5" aria-labelledby="sources-title">
-          <h2 id="sources-title" class="text-[15px] font-semibold text-ink">Sources</h2>
+          <h2 id="sources-title" class="text-[15px] font-semibold text-ink">{{ $t('room.sources') }}</h2>
           <p v-if="!sourceMsg" class="rounded-pass border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-2">
-            Sources for each answer appear here.
+            {{ $t('room.sourcesEmpty') }}
           </p>
           <template v-else>
             <SourcePass v-for="(src, i) in sourceMsg.sources" :key="i"
@@ -307,43 +309,43 @@ function renderContent(text: string): string {
 
         <section class="flex flex-col gap-2 border-t border-line p-5" aria-labelledby="docs-title">
           <div class="flex items-center justify-between">
-            <h2 id="docs-title" class="text-[15px] font-semibold text-ink">Documents</h2>
-            <button v-if="!editingDocs" class="text-[13px] font-semibold text-ink underline-offset-4 hover:underline" @click="startEditDocs">Edit</button>
+            <h2 id="docs-title" class="text-[15px] font-semibold text-ink">{{ $t('room.documents') }}</h2>
+            <button v-if="!editingDocs" class="text-[13px] font-semibold text-ink underline-offset-4 hover:underline" @click="startEditDocs">{{ $t('common.edit') }}</button>
             <div v-else class="flex gap-3">
-              <button class="text-[13px] font-semibold text-ink-2 hover:text-ink" @click="cancelEditDocs">Cancel</button>
+              <button class="text-[13px] font-semibold text-ink-2 hover:text-ink" @click="cancelEditDocs">{{ $t('common.cancel') }}</button>
               <button class="text-[13px] font-semibold text-ink underline disabled:opacity-50" :disabled="savingDocs" @click="saveDocChanges">
-                {{ savingDocs ? 'Saving…' : 'Save' }}
+                {{ savingDocs ? $t('common.saving') : $t('common.save') }}
               </button>
             </div>
           </div>
 
           <template v-if="!editingDocs">
-            <p v-if="roomDocs.length === 0" class="text-[13px] text-ink-3">None attached</p>
+            <p v-if="roomDocs.length === 0" class="text-[13px] text-ink-3">{{ $t('room.noneAttached') }}</p>
             <div v-for="doc in roomDocs" :key="doc!.id" class="flex items-center justify-between gap-3 py-1.5">
               <div class="min-w-0">
                 <p class="truncate text-[14px] font-semibold text-ink">{{ doc!.original_name }}</p>
-                <p class="font-mono text-[12px] text-ink-3">{{ doc!.chunk_count ?? '—' }} chunks</p>
+                <p class="font-mono text-[12px] text-ink-3">{{ $t('common.nChunks', { n: doc!.chunk_count ?? '—' }) }}</p>
               </div>
               <StatusChip :status="doc!.status" />
             </div>
           </template>
 
           <template v-else>
-            <p v-if="readyDocs.length === 0" class="py-2 text-[13px] text-ink-3">No ready documents</p>
+            <p v-if="readyDocs.length === 0" class="py-2 text-[13px] text-ink-3">{{ $t('room.noneReady') }}</p>
             <label v-for="doc in readyDocs" :key="doc.id"
               :class="['flex cursor-pointer items-center gap-3 rounded-[5px] px-2 py-2', pendingDocIds.includes(doc.id) ? 'bg-surface' : 'hover:bg-surface']">
               <input type="checkbox" :checked="pendingDocIds.includes(doc.id)" class="size-4 shrink-0 accent-[var(--dm-ink)]" @change="togglePendingDoc(doc.id)" />
               <span class="min-w-0">
                 <span class="block truncate text-[14px] font-semibold text-ink">{{ doc.original_name }}</span>
-                <span class="block font-mono text-[12px] text-ink-3">{{ doc.chunk_count ?? '—' }} chunks</span>
+                <span class="block font-mono text-[12px] text-ink-3">{{ $t('common.nChunks', { n: doc.chunk_count ?? '—' }) }}</span>
               </span>
             </label>
           </template>
         </section>
 
         <section class="flex flex-col gap-2 border-t border-line p-5" aria-labelledby="online-title">
-          <h2 id="online-title" class="text-[15px] font-semibold text-ink">Here now</h2>
-          <p v-if="roomsStore.connectedUsers.length === 0" class="text-[13px] text-ink-3">Just you</p>
+          <h2 id="online-title" class="text-[15px] font-semibold text-ink">{{ $t('room.hereNow') }}</h2>
+          <p v-if="roomsStore.connectedUsers.length === 0" class="text-[13px] text-ink-3">{{ $t('room.justYou') }}</p>
           <p v-for="user in roomsStore.connectedUsers" :key="user.id" class="flex items-center gap-2.5 text-[14px] text-ink">
             <UiAvatar :name="user.name" size="sm" />{{ user.name }}
           </p>

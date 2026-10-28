@@ -42,6 +42,7 @@ for (const theme of ['light', 'dark']) {
         ] }))
         await loginViaStorage(page)
         await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
+        if (process.env.SHOT_LOCALE) await page.addInitScript((l) => localStorage.setItem('locale', l), process.env.SHOT_LOCALE)
         if (['/login', '/register'].includes(path)) {
           await page.evaluate(() => localStorage.clear()).catch(() => {})
         }
@@ -56,13 +57,13 @@ for (const theme of ['light', 'dark']) {
           ] }))
           await page.goto('/documents')
           await page.waitForLoadState('networkidle')
-          await page.getByRole('link', { name: 'DocuMind, go to dashboard' }).click()
+          await page.locator('header a[href="/dashboard"]').first().click()
         } else {
           await page.goto(path)
         }
         await page.waitForLoadState('networkidle')
         await page.waitForTimeout(300)
-        const slug = path.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'root'
+        const slug = (process.env.SHOT_LOCALE ? process.env.SHOT_LOCALE + '-' : '') + path.replace(/\W+/g, '-').replace(/^-|-$/g, '') || 'root'
         await page.screenshot({ path: `${OUT}/${slug}-${theme}-${vp.n}.png`, fullPage: true })
       })
     }

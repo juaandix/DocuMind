@@ -21,20 +21,20 @@ const match = computed(() => (props.score <= 1 ? props.score : props.score / 100
     <div class="flex min-w-0 flex-col gap-2 px-4 py-3">
       <div class="flex gap-5">
         <div class="min-w-0">
-          <p class="label">Document</p>
+          <p class="label">{{ $t('common.document') }}</p>
           <p class="truncate text-[14px] font-semibold text-ink" :title="documentName">{{ documentName }}</p>
         </div>
         <div v-if="page">
-          <p class="label">Page</p>
+          <p class="label">{{ $t('common.page') }}</p>
           <p class="font-mono text-[13px] font-semibold text-ink">{{ page }}</p>
         </div>
       </div>
       <p class="line-clamp-4 text-[14px] leading-relaxed text-ink-2">{{ excerpt }}</p>
     </div>
-    <div class="flex w-24 flex-col justify-between border-l border-dashed border-line px-3 py-3">
-      <p class="label">Source</p>
+    <div class="flex w-28 flex-col justify-between border-l border-dashed border-line px-3 py-3">
+      <p class="label">{{ $t('common.source') }}</p>
       <p class="font-display text-[34px] font-semibold leading-none text-ink">S{{ index }}</p>
-      <p class="font-mono text-[11px] font-semibold text-ink-3">Match {{ match }}</p>
+      <p><span class="label block">{{ $t('common.matchLabel') }}</span><span class="font-mono text-[13px] font-semibold text-ink">{{ match }}</span></p>
     </div>
   </article>
 </template>
