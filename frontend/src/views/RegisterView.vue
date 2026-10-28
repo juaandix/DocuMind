@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import AuthShell from '@/components/ui/AuthShell.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -8,10 +8,12 @@ import UiButton from '@/components/ui/UiButton.vue'
 import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const { t } = useI18n()
 const fullName = ref('')
-const email = ref('')
+// Prefilled when coming from the landing's email field.
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
 const workspaceName = ref('')
 const loading = ref(false)
