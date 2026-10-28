@@ -1,34 +1,72 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
+import { Upload, MessageSquarePlus, UserPlus, ArrowRight, CircleCheck } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
 import { useDocumentsStore } from '@/stores/documents.store'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useWorkspaceStore } from '@/stores/workspace.store'
+import { useNotificationsStore } from '@/stores/notifications.store'
+import StatusChip from '@/components/ui/StatusChip.vue'
+import { docType, formatShortDate, formatTime } from '@/utils/format'
+import type { Document } from '@/types/document'
 
 const auth = useAuthStore()
 const docsStore = useDocumentsStore()
 const roomsStore = useRoomsStore()
 const wsStore = useWorkspaceStore()
+const notifStore = useNotificationsStore()
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   await Promise.all([docsStore.fetchDocuments(), roomsStore.fetchRooms(), wsStore.fetchWorkspace()])
+  pollTimer = setInterval(() => {
+    if (docsStore.documents.some(d => d.status === 'PROCESSING' || d.status === 'UPLOADING')) docsStore.fetchDocuments()
+  }, 5000)
+})
+onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
+
+const counts = computed(() => {
+  const d = docsStore.documents
+  return {
+    total: d.length,
+    ready: d.filter(x => x.status === 'READY').length,
+    inProgress: d.filter(x => x.status === 'PROCESSING' || x.status === 'UPLOADING').length,
+    errors: d.filter(x => x.status === 'ERROR').length,
+  }
 })
 
-const readyDocs = computed(() => docsStore.documents.filter(d => d.status === 'READY'))
-const processingDocs = computed(() => docsStore.documents.filter(d => d.status === 'PROCESSING'))
 const storagePercent = computed(() => {
   const ws = wsStore.workspace
   if (!ws?.storage_limit_bytes) return 0
   return Math.min(100, Math.round((ws.storage_used_bytes / ws.storage_limit_bytes) * 100))
 })
 
-function formatSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+// Departures: what needs attention, ranked: just finished, in progress, failed.
+// Rows move in place when they rerank; a finished row holds yellow until opened.
+function rank(doc: Document) {
+  if (docsStore.changedIds.has(doc.id)) return 0
+  if (doc.status === 'PROCESSING' || doc.status === 'UPLOADING') return 1
+  if (doc.status === 'ERROR') return 2
+  return 3
 }
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
+const departures = computed(() =>
+  docsStore.documents
+    .filter(d => rank(d) < 3)
+    .sort((a, b) => rank(a) - rank(b) || b.created_at.localeCompare(a.created_at))
+    .slice(0, 5),
+)
+
+const recent = computed(() =>
+  [...docsStore.documents].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 6),
+)
+
+const summary = computed(() => {
+  const parts: string[] = []
+  if (docsStore.changedIds.size) parts.push(`${docsStore.changedIds.size} just finished`)
+  if (counts.value.inProgress) parts.push(`${counts.value.inProgress} processing`)
+  if (counts.value.errors) parts.push(`${counts.value.errors} failed`)
+  return parts.length ? parts.join(' · ') : "Here's what's happening in your workspace."
+})
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -38,206 +76,190 @@ const greeting = computed(() => {
 })
 const firstName = computed(() => auth.user?.full_name?.split(' ')[0] ?? '')
 const isNewUser = computed(() => docsStore.documents.length === 0 && roomsStore.rooms.length === 0)
+
+function relTime(iso: string) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (mins < 1) return 'now'
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60)
+  return h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`
+}
+
+const onboarding = [
+  { to: '/documents/upload', step: 1, title: 'Upload a document', body: 'PDF, DOCX, CSV or TXT, up to 50 MB.' },
+  { to: '/rooms/new', step: 2, title: 'Create a chat room', body: 'Attach documents and start a conversation.' },
+  { to: '/settings/members', step: 3, title: 'Invite your team', body: 'Ask questions together in real time.' },
+]
 </script>
 
 <template>
-  <div class="p-8 max-w-5xl">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-semibold text-[#1d1d1f]">
-        {{ greeting }}, {{ firstName }}
-      </h1>
-      <p class="text-sm text-[#6e6e73] mt-1">Here's what's happening in your workspace.</p>
-    </div>
-
-    <!-- Quick actions -->
-    <div class="flex flex-wrap gap-3 mb-8">
-      <router-link to="/documents/upload"
-        class="inline-flex items-center gap-2 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-xl px-4 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-        </svg>
-        Upload document
-      </router-link>
-      <router-link to="/rooms/new"
-        class="inline-flex items-center gap-2 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f] text-sm font-medium rounded-xl px-4 py-2.5 border border-black/[0.1] shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-        </svg>
-        New chat room
-      </router-link>
-      <router-link to="/settings/members"
-        class="inline-flex items-center gap-2 bg-white hover:bg-[#f5f5f7] text-[#1d1d1f] text-sm font-medium rounded-xl px-4 py-2.5 border border-black/[0.1] shadow-[0_1px_4px_rgba(0,0,0,0.06)] transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        Invite member
-      </router-link>
-    </div>
-
-    <!-- Onboarding (new users only) -->
-    <div v-if="isNewUser" class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6 mb-8">
-      <h2 class="text-base font-semibold text-[#1d1d1f] mb-1">Get started with DocuMind</h2>
-      <p class="text-sm text-[#6e6e73] mb-5">Three steps to start chatting with your documents.</p>
-      <div class="grid sm:grid-cols-3 gap-4">
-        <router-link to="/documents/upload"
-          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-[#0071e3]/30 hover:border-[#0071e3] hover:bg-[#0071e3]/[0.02] transition-all">
-          <div class="w-9 h-9 rounded-xl bg-[#0071e3]/[0.1] flex items-center justify-center">
-            <span class="text-sm font-bold text-[#0071e3]">1</span>
-          </div>
+  <div>
+    <!-- Departures band -->
+    <section class="border-b border-rail-2 bg-rail text-rail-ink" aria-labelledby="greeting">
+      <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 pt-7 pb-8 sm:px-8">
+        <div class="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p class="text-sm font-semibold text-[#1d1d1f]">Upload a document</p>
-            <p class="text-xs text-[#6e6e73] mt-0.5">PDF, DOCX or TXT — up to 50 MB</p>
+            <h1 id="greeting" class="text-[28px] font-semibold leading-tight tracking-[-0.015em] text-white">{{ greeting }}, {{ firstName }}</h1>
+            <p class="mt-1 text-[15px] text-rail-ink-2">{{ summary }}</p>
           </div>
-          <span class="text-xs font-medium text-[#0071e3] group-hover:underline">Upload →</span>
-        </router-link>
-        <router-link to="/rooms/new"
-          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-black/[0.1] hover:border-[#34c759] hover:bg-[#34c759]/[0.02] transition-all">
-          <div class="w-9 h-9 rounded-xl bg-[#34c759]/[0.1] flex items-center justify-center">
-            <span class="text-sm font-bold text-[#34c759]">2</span>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-[#1d1d1f]">Create a chat room</p>
-            <p class="text-xs text-[#6e6e73] mt-0.5">Attach documents and start a conversation</p>
-          </div>
-          <span class="text-xs font-medium text-[#34c759] group-hover:underline">Create room →</span>
-        </router-link>
-        <router-link to="/settings/members"
-          class="group flex flex-col gap-3 p-4 rounded-xl border-2 border-dashed border-black/[0.1] hover:border-[#af52de] hover:bg-[#af52de]/[0.02] transition-all">
-          <div class="w-9 h-9 rounded-xl bg-[#af52de]/[0.1] flex items-center justify-center">
-            <span class="text-sm font-bold text-[#af52de]">3</span>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-[#1d1d1f]">Invite your team</p>
-            <p class="text-xs text-[#6e6e73] mt-0.5">Collaborate with colleagues in real time</p>
-          </div>
-          <span class="text-xs font-medium text-[#af52de] group-hover:underline">Invite members →</span>
-        </router-link>
-      </div>
-    </div>
-
-    <!-- Stat cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div class="w-9 h-9 rounded-xl bg-[#0071e3]/[0.1] flex items-center justify-center mb-3">
-          <svg class="w-5 h-5 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-          </svg>
-        </div>
-        <p class="text-2xl font-semibold text-[#1d1d1f]">{{ docsStore.documents.length }}</p>
-        <p class="text-xs text-[#6e6e73] mt-0.5">Documents</p>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div class="w-9 h-9 rounded-xl bg-[#34c759]/[0.12] flex items-center justify-center mb-3">
-          <svg class="w-5 h-5 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-          </svg>
-        </div>
-        <p class="text-2xl font-semibold text-[#1d1d1f]">{{ roomsStore.rooms.length }}</p>
-        <p class="text-xs text-[#6e6e73] mt-0.5">Chat Rooms</p>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div class="w-9 h-9 rounded-xl bg-[#ff9f0a]/[0.12] flex items-center justify-center mb-3">
-          <svg class="w-5 h-5 text-[#ff9f0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
-        </div>
-        <p class="text-2xl font-semibold text-[#1d1d1f]">{{ processingDocs.length }}</p>
-        <p class="text-xs text-[#6e6e73] mt-0.5">Processing</p>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div class="w-9 h-9 rounded-xl bg-[#af52de]/[0.12] flex items-center justify-center mb-3">
-          <svg class="w-5 h-5 text-[#af52de]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16M10 12h4"/>
-          </svg>
-        </div>
-        <div>
-          <p class="text-2xl font-semibold text-[#1d1d1f]">{{ storagePercent }}%</p>
-          <p class="text-xs text-[#6e6e73] mt-0.5">Storage used</p>
-          <div class="mt-2 h-1 rounded-full bg-black/[0.06] overflow-hidden">
-            <div class="h-full rounded-full bg-[#af52de] transition-all" :style="{ width: storagePercent + '%' }"></div>
+          <div class="flex flex-wrap gap-2">
+            <router-link to="/settings/members" class="press inline-flex min-h-10 items-center gap-2 rounded-[5px] px-4 text-sm font-semibold text-rail-ink hover:bg-rail-2 hover:text-white">
+              <UserPlus class="size-4" />Invite member
+            </router-link>
+            <router-link to="/rooms/new" class="press inline-flex min-h-10 items-center gap-2 rounded-[5px] border border-rail-ink-2/50 px-4 text-sm font-semibold text-white hover:border-white">
+              <MessageSquarePlus class="size-4" />New chat room
+            </router-link>
+            <router-link to="/documents/upload" class="press inline-flex min-h-10 items-center gap-2 rounded-[5px] bg-alert px-4 text-sm font-semibold text-on-alert hover:brightness-95">
+              <Upload class="size-4" />Upload document
+            </router-link>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Content grid -->
-    <div class="grid lg:grid-cols-5 gap-6">
-      <!-- Recent documents -->
-      <div class="lg:col-span-3 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-black/[0.06]">
-          <h2 class="text-sm font-semibold text-[#1d1d1f]">Recent Documents</h2>
-          <router-link to="/documents" class="text-xs text-[#0071e3] hover:underline font-medium">View all</router-link>
-        </div>
-
-        <div v-if="docsStore.documents.length === 0" class="flex flex-col items-center justify-center py-14 text-center">
-          <div class="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-3">
-            <svg class="w-6 h-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-            </svg>
-          </div>
-          <p class="text-sm font-medium text-[#1d1d1f]">No documents yet</p>
-          <router-link to="/documents/upload" class="text-xs text-[#0071e3] hover:underline mt-1.5">Upload your first document</router-link>
-        </div>
-
-        <div v-else class="divide-y divide-black/[0.04]">
-          <div v-for="doc in docsStore.documents.slice(0, 6)" :key="doc.id"
-            class="flex items-center gap-3 px-5 py-3 hover:bg-[#f5f5f7] transition-colors">
-            <div class="w-8 h-8 rounded-lg bg-[#0071e3]/[0.08] flex items-center justify-center flex-shrink-0">
-              <svg class="w-4 h-4 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-              </svg>
+        <div v-if="!isNewUser" class="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+          <dl class="grid grid-cols-3 rounded-pass border border-rail-2 sm:grid-cols-5">
+            <div class="px-4 py-3">
+              <dt class="label !text-rail-ink-2">Documents</dt>
+              <dd class="mt-1 font-display text-[38px] font-semibold leading-none text-white">{{ counts.total }}</dd>
             </div>
-            <div class="flex-1 min-w-0">
-              <router-link :to="`/documents/${doc.id}`" class="text-sm font-medium text-[#1d1d1f] truncate block hover:text-[#0071e3] transition-colors">
-                {{ doc.original_name }}
+            <div class="border-l border-rail-2 px-4 py-3">
+              <dt class="label !text-rail-ink-2">Ready</dt>
+              <dd class="mt-1 font-display text-[38px] font-semibold leading-none text-white">{{ counts.ready }}</dd>
+            </div>
+            <div class="border-l border-rail-2 px-4 py-3">
+              <dt class="label !text-rail-ink-2">Processing</dt>
+              <dd class="mt-1 font-display text-[38px] font-semibold leading-none text-white">{{ counts.inProgress }}</dd>
+            </div>
+            <div class="border-rail-2 px-4 py-3 max-sm:border-t sm:border-l">
+              <dt class="label !text-rail-ink-2">Failed</dt>
+              <dd :class="['mt-1 font-display text-[38px] font-semibold leading-none', counts.errors ? 'text-danger-on-ink' : 'text-white']">{{ counts.errors }}</dd>
+            </div>
+            <div class="col-span-2 border-l border-rail-2 px-4 py-3 max-sm:border-t sm:col-span-1">
+              <dt class="label !text-rail-ink-2">Storage</dt>
+              <dd class="mt-1 font-display text-[38px] font-semibold leading-none text-white">{{ storagePercent }}<span class="text-[22px]">%</span></dd>
+            </div>
+          </dl>
+
+          <div class="min-w-0 rounded-pass border border-rail-2" aria-live="polite">
+            <p v-if="departures.length === 0" class="flex h-full min-h-[72px] items-center gap-3 px-4 text-[14px] text-rail-ink">
+              <CircleCheck class="size-5 text-alert" />All {{ counts.total }} documents are ready to query.
+            </p>
+            <TransitionGroup v-else tag="ul" name="rerank">
+              <li v-for="doc in departures" :key="doc.id"
+                :class="['grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 border-t border-rail-2 px-4 py-2.5 transition-colors duration-300 first:border-t-0',
+                  docsStore.changedIds.has(doc.id) ? 'bg-alert text-on-alert' : '']">
+                <router-link :to="`/documents/${doc.id}`" class="truncate text-[14px] font-semibold hover:underline"
+                  :class="docsStore.changedIds.has(doc.id) ? 'text-on-alert' : 'text-white'"
+                  @click="docsStore.acknowledge(doc.id)">{{ doc.original_name }}</router-link>
+                <span v-if="docsStore.changedIds.has(doc.id)" class="rounded-[4px] border border-on-alert px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em]">
+                  Now {{ doc.status === 'READY' ? 'ready' : 'failed' }}
+                </span>
+                <span v-else-if="doc.status === 'ERROR'" class="rounded-[4px] border border-danger-on-ink px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-danger-on-ink">Error</span>
+                <span v-else class="rounded-[4px] border border-dashed border-rail-ink-2 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-rail-ink">Processing</span>
+                <span class="w-12 text-right font-mono text-[12px]" :class="docsStore.changedIds.has(doc.id) ? 'text-on-alert' : 'text-rail-ink-2'">{{ formatTime(doc.processed_at ?? doc.created_at) }}</span>
+              </li>
+            </TransitionGroup>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-8">
+      <!-- Onboarding (new users only) -->
+      <section v-if="isNewUser" aria-labelledby="onboarding-title" class="rounded-pass bg-surface shadow-pass">
+        <h2 id="onboarding-title" class="border-b border-line px-5 py-4 text-base font-semibold text-ink">Get started with DocuMind</h2>
+        <ol class="grid sm:grid-cols-3">
+          <li v-for="item in onboarding" :key="item.step" class="border-line max-sm:border-t max-sm:first:border-t-0 sm:border-l sm:first:border-l-0">
+            <router-link :to="item.to" class="group flex h-full flex-col gap-3 p-5 hover:bg-sunken">
+              <span class="font-display text-[34px] font-semibold leading-none text-ink-3 group-hover:text-ink">{{ item.step }}</span>
+              <span>
+                <span class="block text-[15px] font-semibold text-ink">{{ item.title }}</span>
+                <span class="mt-0.5 block text-[13px] text-ink-2">{{ item.body }}</span>
+              </span>
+            </router-link>
+          </li>
+        </ol>
+      </section>
+
+      <div v-else class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <!-- Recent documents -->
+        <section aria-labelledby="recent-title" class="overflow-hidden rounded-pass bg-surface shadow-pass">
+          <div class="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
+            <h2 id="recent-title" class="text-base font-semibold text-ink">Recent Documents</h2>
+            <router-link to="/documents" class="inline-flex items-center gap-1 text-[13px] font-semibold text-ink hover:underline">
+              View all <ArrowRight class="size-3.5" />
+            </router-link>
+          </div>
+          <table class="w-full table-fixed text-left">
+            <thead>
+              <tr class="label">
+                <th class="px-5 py-2.5 font-semibold">Document</th>
+                <th class="hidden w-20 px-3 py-2.5 font-semibold sm:table-cell">Type</th>
+                <th class="hidden w-24 px-3 py-2.5 text-right font-semibold sm:table-cell">Chunks</th>
+                <th class="w-36 px-3 py-2.5 font-semibold">Status</th>
+                <th class="hidden w-24 px-5 py-2.5 text-right font-semibold md:table-cell">Added</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="doc in recent" :key="doc.id"
+                :class="['border-t border-line', docsStore.changedIds.has(doc.id) ? 'bg-alert-soft' : 'hover:bg-sunken']">
+                <td class="px-5 py-3">
+                  <router-link :to="`/documents/${doc.id}`" class="block truncate text-[14px] font-semibold text-ink hover:underline"
+                    @click="docsStore.acknowledge(doc.id)">{{ doc.original_name }}</router-link>
+                </td>
+                <td class="hidden px-3 py-3 font-mono text-[13px] text-ink-2 sm:table-cell">{{ docType(doc.mime_type, doc.original_name) }}</td>
+                <td class="hidden px-3 py-3 text-right font-mono text-[13px] text-ink-2 sm:table-cell">{{ doc.chunk_count ?? '—' }}</td>
+                <td class="px-3 py-3"><StatusChip :status="doc.status" :changed="docsStore.changedIds.has(doc.id)" /></td>
+                <td class="hidden px-5 py-3 text-right font-mono text-[13px] text-ink-2 md:table-cell">{{ formatShortDate(doc.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="docsStore.documents.length === 0" class="px-5 py-10 text-center">
+            <p class="text-sm font-semibold text-ink">No documents yet</p>
+            <router-link to="/documents/upload" class="mt-1 inline-block text-[13px] font-semibold text-ink underline">Upload your first document</router-link>
+          </div>
+        </section>
+
+        <div class="flex flex-col gap-8">
+          <!-- Rooms -->
+          <section aria-labelledby="rooms-title" class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <h2 id="rooms-title" class="text-base font-semibold text-ink">Chat Rooms</h2>
+              <router-link to="/rooms" class="inline-flex items-center gap-1 text-[13px] font-semibold text-ink hover:underline">
+                View all <ArrowRight class="size-3.5" />
               </router-link>
-              <p class="text-xs text-[#6e6e73]">{{ formatSize(doc.size_bytes) }} · {{ formatDate(doc.created_at) }}</p>
             </div>
-            <span :class="[
-              'text-[10px] font-medium px-2 py-0.5 rounded-full',
-              doc.status === 'READY' ? 'bg-[#34c759]/[0.12] text-[#248a3d]' :
-              doc.status === 'PROCESSING' ? 'bg-[#ff9f0a]/[0.12] text-[#b86d00]' :
-              doc.status === 'ERROR' ? 'bg-red-50 text-red-600' :
-              'bg-[#0071e3]/[0.08] text-[#0071e3]'
-            ]">{{ doc.status }}</span>
-          </div>
-        </div>
-      </div>
+            <p v-if="roomsStore.rooms.length === 0" class="rounded-pass border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-2">
+              No rooms yet. <router-link to="/rooms/new" class="font-semibold text-ink underline">Create a room</router-link>
+            </p>
+            <router-link v-for="room in roomsStore.rooms.slice(0, 4)" :key="room.id" :to="`/rooms/${room.id}`"
+              class="grid grid-cols-[1fr_auto] rounded-pass bg-surface shadow-pass hover:shadow-raised">
+              <span class="min-w-0 px-4 py-3">
+                <span class="block truncate text-[15px] font-semibold text-ink">{{ room.name }}</span>
+                <span class="label mt-1 block">Opened {{ formatShortDate(room.created_at) }}</span>
+              </span>
+              <span class="flex w-20 flex-col items-center justify-center border-l border-dashed border-line">
+                <span class="font-display text-[26px] font-semibold leading-none text-ink">{{ room.document_ids.length }}</span>
+                <span class="label mt-1">{{ room.document_ids.length === 1 ? 'Doc' : 'Docs' }}</span>
+              </span>
+            </router-link>
+          </section>
 
-      <!-- Recent rooms -->
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-black/[0.06]">
-          <h2 class="text-sm font-semibold text-[#1d1d1f]">Chat Rooms</h2>
-          <router-link to="/rooms" class="text-xs text-[#0071e3] hover:underline font-medium">View all</router-link>
-        </div>
-
-        <div v-if="roomsStore.rooms.length === 0" class="flex flex-col items-center justify-center py-14 text-center">
-          <div class="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-3">
-            <svg class="w-6 h-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-          </div>
-          <p class="text-sm font-medium text-[#1d1d1f]">No rooms yet</p>
-          <router-link to="/rooms/new" class="text-xs text-[#0071e3] hover:underline mt-1.5">Create a room</router-link>
-        </div>
-
-        <div v-else class="divide-y divide-black/[0.04]">
-          <router-link v-for="room in roomsStore.rooms.slice(0, 6)" :key="room.id" :to="`/rooms/${room.id}`"
-            class="flex items-center gap-3 px-5 py-3 hover:bg-[#f5f5f7] transition-colors block">
-            <div class="w-8 h-8 rounded-lg bg-[#34c759]/[0.1] flex items-center justify-center flex-shrink-0">
-              <svg class="w-4 h-4 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-[#1d1d1f] truncate">{{ room.name }}</p>
-              <p class="text-xs text-[#6e6e73]">{{ room.document_ids.length }} docs · {{ formatDate(room.created_at) }}</p>
-            </div>
-          </router-link>
+          <!-- Activity, from workspace notifications -->
+          <section aria-labelledby="activity-title" class="flex flex-col gap-3">
+            <h2 id="activity-title" class="text-base font-semibold text-ink">Activity</h2>
+            <p v-if="notifStore.items.length === 0" class="rounded-pass border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-2">
+              Processing results, exports and invites show up here.
+            </p>
+            <ol v-else class="overflow-hidden rounded-pass bg-surface shadow-pass">
+              <li v-for="n in notifStore.items.slice(0, 5)" :key="n._id" class="grid grid-cols-[1fr_auto] gap-3 border-t border-line px-4 py-3 first:border-t-0">
+                <span class="min-w-0">
+                  <span class="block truncate text-[14px] font-semibold text-ink">{{ n.title }}</span>
+                  <span class="block truncate text-[13px] text-ink-2">{{ n.body }}</span>
+                </span>
+                <span class="font-mono text-[12px] text-ink-3">{{ relTime(n.created_at) }}</span>
+              </li>
+            </ol>
+          </section>
         </div>
       </div>
     </div>

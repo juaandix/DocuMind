@@ -2,6 +2,9 @@
 import { onMounted, ref } from 'vue'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useDocumentsStore } from '@/stores/documents.store'
+import { Plus, Trash2, MessagesSquare } from 'lucide-vue-next'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 
 const roomsStore = useRoomsStore()
 const docsStore = useDocumentsStore()
@@ -21,72 +24,42 @@ async function handleDelete(id: string) {
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-semibold text-[#1d1d1f]">Chat Rooms</h1>
-        <p class="text-sm text-[#6e6e73] mt-0.5">{{ roomsStore.rooms.length }} rooms</p>
-      </div>
-      <router-link to="/rooms/new"
-        class="inline-flex items-center gap-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-4 py-2 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        New Room
-      </router-link>
+  <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <PageHeader title="Chat Rooms" :description="`${roomsStore.rooms.length} rooms`">
+      <template #actions><UiButton to="/rooms/new"><Plus class="size-4" />New room</UiButton></template>
+    </PageHeader>
+
+    <div v-if="roomsStore.rooms.length === 0" class="flex flex-col items-center justify-center rounded-pass border border-dashed border-line bg-surface py-20 text-center">
+      <MessagesSquare class="mb-3 size-7 text-ink-3" :stroke-width="1.5" />
+      <p class="text-base font-semibold text-ink">No rooms yet</p>
+      <p class="mt-1 max-w-sm text-[14px] text-ink-2">A room gathers a few documents and the people asking about them.</p>
+      <router-link to="/rooms/new" class="mt-3 text-[13px] font-semibold text-ink underline">Create your first room</router-link>
     </div>
 
-    <div v-if="roomsStore.rooms.length === 0" class="flex flex-col items-center justify-center py-24 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-      <div class="w-14 h-14 rounded-2xl bg-[#34c759]/[0.1] flex items-center justify-center mb-4">
-        <svg class="w-7 h-7 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-        </svg>
-      </div>
-      <p class="text-base font-medium text-[#1d1d1f]">No chat rooms yet</p>
-      <router-link to="/rooms/new" class="text-sm text-[#0071e3] hover:underline mt-2">Create your first room</router-link>
-    </div>
-
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <div v-for="room in roomsStore.rooms" :key="room.id"
-        class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)] transition-all group overflow-hidden">
-
-        <div class="flex items-start justify-between p-4 border-b border-black/[0.04]">
-          <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-[#34c759]/[0.1] flex items-center justify-center flex-shrink-0">
-              <svg class="w-5 h-5 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-            </div>
-            <router-link :to="`/rooms/${room.id}`" class="flex-1 min-w-0">
-              <h3 class="text-sm font-semibold text-[#1d1d1f] truncate hover:text-[#0071e3] transition-colors">{{ room.name }}</h3>
-            </router-link>
-          </div>
-          <button @click="handleDelete(room.id)" :disabled="deleting === room.id"
-            class="ml-2 p-1.5 rounded-lg text-[#6e6e73] hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="p-4">
-          <div class="flex flex-wrap gap-1.5 mb-4 min-h-[1.5rem]">
-            <span v-for="docId in room.document_ids.slice(0, 3)" :key="docId"
-              class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] text-[#6e6e73] truncate max-w-[10rem]">
-              {{ docName(docId) }}
-            </span>
-            <span v-if="room.document_ids.length > 3"
-              class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#f5f5f7] text-[#6e6e73]">
-              +{{ room.document_ids.length - 3 }}
-            </span>
-            <span v-if="room.document_ids.length === 0" class="text-xs text-[#6e6e73]">No documents attached</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-[#6e6e73]">{{ formatDate(room.created_at) }}</span>
-            <router-link :to="`/rooms/${room.id}`" class="text-xs font-medium text-[#0071e3] hover:underline">Open →</router-link>
+    <ul v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <li v-for="room in roomsStore.rooms" :key="room.id"
+        class="group grid grid-cols-[1fr_88px] rounded-pass bg-surface shadow-pass hover:shadow-raised">
+        <div class="flex min-w-0 flex-col gap-3 px-5 py-4">
+          <router-link :to="`/rooms/${room.id}`" class="truncate text-[16px] font-semibold text-ink hover:underline">{{ room.name }}</router-link>
+          <ul class="flex flex-wrap gap-1.5" aria-label="Documents">
+            <li v-for="docId in room.document_ids.slice(0, 3)" :key="docId"
+              class="max-w-full truncate rounded-[4px] border border-line px-2 py-0.5 font-mono text-[12px] text-ink-2">{{ docName(docId) }}</li>
+            <li v-if="room.document_ids.length > 3" class="rounded-[4px] border border-line px-2 py-0.5 font-mono text-[12px] text-ink-2">+{{ room.document_ids.length - 3 }}</li>
+            <li v-if="room.document_ids.length === 0" class="text-[13px] text-ink-3">No documents attached</li>
+          </ul>
+          <div class="mt-auto flex items-center justify-between">
+            <span class="label">Opened {{ formatDate(room.created_at) }}</span>
+            <button :disabled="deleting === room.id" :aria-label="`Delete room ${room.name}`"
+              class="rounded p-1.5 text-ink-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-danger-soft hover:text-danger focus-visible:opacity-100 disabled:opacity-40"
+              @click="handleDelete(room.id)"><Trash2 class="size-4" /></button>
           </div>
         </div>
-      </div>
-    </div>
+        <router-link :to="`/rooms/${room.id}`" tabindex="-1" aria-hidden="true"
+          class="flex flex-col items-center justify-center border-l border-dashed border-line hover:bg-sunken">
+          <span class="font-display text-[32px] font-semibold leading-none text-ink">{{ room.document_ids.length }}</span>
+          <span class="label mt-1">{{ room.document_ids.length === 1 ? 'Doc' : 'Docs' }}</span>
+        </router-link>
+      </li>
+    </ul>
   </div>
 </template>

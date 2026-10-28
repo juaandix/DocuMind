@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { onClickOutside, useEventListener } from '@vueuse/core'
+import {
+  Bell, LogOut, Moon, Sun, Menu, X, CircleCheck, CircleAlert, Download, UserPlus, TriangleAlert, Search,
+  UserRound, Building2, ChevronDown,
+} from 'lucide-vue-next'
+import type { Component } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useWorkspaceStore } from '@/stores/workspace.store'
 import { useNotificationsStore } from '@/stores/notifications.store'
+import { useTheme } from '@/composables/useTheme'
+import BrandMark from '@/components/ui/BrandMark.vue'
 import type { NotificationType } from '@/types/notification'
 
 const router = useRouter()
@@ -11,23 +19,21 @@ const route = useRoute()
 const auth = useAuthStore()
 const wsStore = useWorkspaceStore()
 const notifStore = useNotificationsStore()
+const { theme, toggle: toggleTheme } = useTheme()
 
-const workspaceName = computed(() => wsStore.workspace?.name ?? auth.user?.full_name?.split(' ')[0] ?? 'Workspace')
+const workspaceName = computed(() => wsStore.workspace?.name ?? 'Workspace')
 
-const navMain = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'grid' },
-  { to: '/documents', label: 'Documents', icon: 'file' },
-  { to: '/rooms', label: 'Chat Rooms', icon: 'chat' },
+const nav = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/documents', label: 'Documents' },
+  { to: '/rooms', label: 'Chat Rooms' },
+  { to: '/settings/members', label: 'Members' },
+  { to: '/settings/workspace', label: 'Settings', match: ['/settings/workspace', '/settings/profile'] },
 ]
 
-const navSettings = [
-  { to: '/settings/workspace', label: 'Workspace', icon: 'building' },
-  { to: '/settings/members', label: 'Members', icon: 'users' },
-  { to: '/settings/profile', label: 'Profile', icon: 'user' },
-]
-
-function isActive(to: string) {
-  return route.path === to || (to !== '/dashboard' && route.path.startsWith(to))
+function isActive(item: { to: string; match?: string[] }) {
+  const paths = item.match ?? [item.to]
+  return paths.some(p => route.path === p || (p !== '/dashboard' && route.path.startsWith(p)))
 }
 
 async function handleLogout() {
@@ -40,8 +46,35 @@ const initials = computed(() => {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 })
 
-// Notifications
+// Global search jumps to the documents list, filtered. The documents page has its own field.
+const searchInput = ref<HTMLInputElement | null>(null)
+const query = ref('')
+function submitSearch() {
+  router.push({ path: '/documents', query: query.value.trim() ? { q: query.value.trim() } : {} })
+  searchInput.value?.blur()
+}
+
+// Menus
+const mobileOpen = ref(false)
+const userMenuOpen = ref(false)
+const userMenu = ref<HTMLElement | null>(null)
+onClickOutside(userMenu, () => { userMenuOpen.value = false })
+watch(() => route.path, () => { mobileOpen.value = false; userMenuOpen.value = false })
+
 const drawerOpen = ref(false)
+
+useEventListener(window, 'keydown', (e: KeyboardEvent) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    const field = searchInput.value ?? document.querySelector<HTMLInputElement>('main input[type="search"]')
+    field?.focus()
+    return
+  }
+  if (e.key !== 'Escape') return
+  drawerOpen.value = false
+  mobileOpen.value = false
+  userMenuOpen.value = false
+})
 
 onMounted(() => { notifStore.init(); wsStore.fetchWorkspace() })
 onUnmounted(() => notifStore.cleanup())
@@ -56,223 +89,147 @@ function formatRelTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-const notifStyle: Record<NotificationType, { icon: string; bg: string; color: string }> = {
-  document_ready:   { icon: 'check', bg: 'bg-[#34c759]/[0.1]', color: 'text-[#34c759]' },
-  document_error:   { icon: 'x',     bg: 'bg-red-50',           color: 'text-red-500' },
-  export_ready:     { icon: 'down',  bg: 'bg-[#0071e3]/[0.08]', color: 'text-[#0071e3]' },
-  workspace_invite: { icon: 'user',  bg: 'bg-[#af52de]/[0.1]',  color: 'text-[#af52de]' },
-  storage_warning:  { icon: 'warn',  bg: 'bg-[#ff9f0a]/[0.1]',  color: 'text-[#ff9f0a]' },
+const notifStyle: Record<NotificationType, { icon: Component; tone: string }> = {
+  document_ready:   { icon: CircleCheck,   tone: 'text-ink' },
+  document_error:   { icon: CircleAlert,   tone: 'text-danger' },
+  export_ready:     { icon: Download,      tone: 'text-ink' },
+  workspace_invite: { icon: UserPlus,      tone: 'text-ink' },
+  storage_warning:  { icon: TriangleAlert, tone: 'text-ink' },
 }
 </script>
 
 <template>
-  <div class="flex h-screen bg-[#e8e8ed] p-3 gap-3 overflow-hidden">
+  <div class="flex h-dvh flex-col overflow-hidden bg-ground">
 
-    <!-- Floating sidebar card -->
-    <aside class="w-52 flex-shrink-0 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden">
+    <!-- Top bar -->
+    <header class="relative z-30 flex h-14 shrink-0 items-center gap-2 bg-rail px-4 text-rail-ink lg:px-8">
+      <button class="-ml-1 rounded p-2 text-rail-ink-2 hover:text-white md:hidden" :aria-expanded="mobileOpen" aria-label="Open menu" @click="mobileOpen = !mobileOpen">
+        <X v-if="mobileOpen" class="size-5" /><Menu v-else class="size-5" />
+      </button>
 
-      <!-- Logo -->
-      <div class="px-4 pt-5 pb-4">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-[#0071e3] flex items-center justify-center shadow-[0_2px_8px_rgba(0,113,227,0.35)]">
-            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-[#1d1d1f] leading-tight tracking-tight">DocuMind</p>
-            <p class="text-[10px] text-[#6e6e73] leading-tight truncate max-w-[7rem]">{{ workspaceName }}</p>
-          </div>
-        </div>
-      </div>
+      <router-link to="/dashboard" class="mr-6 flex items-center gap-2.5" aria-label="DocuMind, go to dashboard">
+        <BrandMark :size="28" />
+        <span class="font-display text-[20px] font-bold uppercase leading-none tracking-[0.06em] text-white">DocuMind</span>
+      </router-link>
 
-      <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto px-2 space-y-0.5">
-        <template v-for="item in navMain" :key="item.to">
-          <router-link :to="item.to"
-            :class="[
-              'flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl transition-colors',
-              isActive(item.to)
-                ? 'bg-[#0071e3] text-white font-medium shadow-[0_2px_8px_rgba(0,113,227,0.3)]'
-                : 'text-[#1d1d1f] hover:bg-[#f5f5f7] font-normal'
-            ]"
-          >
-            <svg v-if="item.icon === 'grid'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-            <svg v-else-if="item.icon === 'file'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-            </svg>
-            <svg v-else-if="item.icon === 'chat'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-            {{ item.label }}
-          </router-link>
-        </template>
-
-        <!-- Settings section -->
-        <div class="pt-4 pb-1 px-3">
-          <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest">Settings</p>
-        </div>
-
-        <template v-for="item in navSettings" :key="item.to">
-          <router-link :to="item.to"
-            :class="[
-              'flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl transition-colors',
-              isActive(item.to)
-                ? 'bg-[#0071e3] text-white font-medium shadow-[0_2px_8px_rgba(0,113,227,0.3)]'
-                : 'text-[#1d1d1f] hover:bg-[#f5f5f7] font-normal'
-            ]"
-          >
-            <svg v-if="item.icon === 'building'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-            </svg>
-            <svg v-else-if="item.icon === 'users'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            <svg v-else-if="item.icon === 'user'" :class="['w-4 h-4 flex-shrink-0', isActive(item.to) ? 'opacity-100' : 'opacity-50']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-            </svg>
-            {{ item.label }}
-          </router-link>
-        </template>
+      <nav aria-label="Main" class="hidden h-full items-stretch gap-6 md:flex">
+        <router-link v-for="item in nav" :key="item.to" :to="item.to"
+          :aria-current="isActive(item) ? 'page' : undefined"
+          :class="[
+            'flex items-center text-[14px]',
+            isActive(item) ? 'font-semibold text-white shadow-[inset_0_-2px_0_var(--dm-alert)]' : 'font-medium text-rail-ink-2 hover:text-white',
+          ]">{{ item.label }}</router-link>
       </nav>
 
-      <!-- User footer -->
-      <div class="p-3 mt-2">
-        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#f5f5f7] hover:bg-[#ebebf0] transition-colors cursor-default">
-          <div class="w-7 h-7 rounded-full bg-[#0071e3] flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
-            {{ initials }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-medium text-[#1d1d1f] truncate leading-tight">{{ auth.user?.full_name }}</p>
-            <p class="text-[10px] text-[#6e6e73] truncate leading-tight">{{ auth.user?.role }}</p>
-          </div>
-          <button @click="handleLogout" class="p-1 rounded-lg text-[#6e6e73] hover:text-red-500 hover:bg-white transition-colors flex-shrink-0" title="Sign out">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </aside>
+      <form v-if="route.path !== '/documents'" role="search" class="ml-auto hidden lg:block" @submit.prevent="submitSearch">
+        <label class="relative flex w-72 items-center">
+          <span class="sr-only">Search documents</span>
+          <Search class="pointer-events-none absolute left-3 size-4 text-rail-ink-2" />
+          <input ref="searchInput" v-model="query" type="search" placeholder="Search documents"
+            class="h-9 w-full rounded-[5px] border border-rail-2 bg-rail-2 pr-12 pl-9 text-[14px] text-white placeholder:text-rail-ink-2 focus:border-rail-ink-2 focus:ring-2 focus:ring-alert focus:outline-none" />
+          <kbd class="pointer-events-none absolute right-2 rounded-[3px] border border-rail-ink-2/40 px-1.5 font-mono text-[11px] text-rail-ink-2">⌘K</kbd>
+        </label>
+      </form>
 
-    <!-- Main content card -->
-    <main class="flex-1 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col overflow-hidden">
-
-      <!-- Persistent header with notification bell -->
-      <div class="flex items-center justify-end px-5 h-12 border-b border-black/[0.04] flex-shrink-0">
-        <button @click="drawerOpen = true"
-          class="relative p-2 rounded-lg text-[#6e6e73] hover:bg-[#f5f5f7] transition-colors"
-          title="Notifications">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-          </svg>
+      <div :class="['flex items-center gap-1', route.path === '/documents' ? 'ml-auto' : 'ml-auto lg:ml-3']">
+        <button class="press rounded p-2 text-rail-ink-2 hover:bg-rail-2 hover:text-white"
+          :aria-label="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'" @click="toggleTheme">
+          <Sun v-if="theme === 'dark'" class="size-[18px]" /><Moon v-else class="size-[18px]" />
+        </button>
+        <button class="press relative rounded p-2 text-rail-ink-2 hover:bg-rail-2 hover:text-white"
+          :aria-label="notifStore.unread > 0 ? `Notifications, ${notifStore.unread} unread` : 'Notifications'"
+          title="Notifications" @click="drawerOpen = true">
+          <Bell class="size-[18px]" :stroke-width="1.75" />
           <span v-if="notifStore.unread > 0"
-            class="absolute top-1 right-1 bg-[#ff3b30] text-white text-[9px] font-bold rounded-full min-w-[14px] h-3.5 px-0.5 flex items-center justify-center leading-none">
+            class="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-[3px] bg-alert px-1 font-mono text-[11px] font-bold leading-none text-on-alert">
             {{ notifStore.unread > 9 ? '9+' : notifStore.unread }}
           </span>
         </button>
+
+        <div ref="userMenu" class="relative ml-2">
+          <button class="press flex items-center gap-2 rounded-[5px] py-1 pr-1.5 pl-1 hover:bg-rail-2" :aria-expanded="userMenuOpen" aria-haspopup="menu"
+            :aria-label="`Account menu for ${auth.user?.full_name ?? 'you'}`" @click="userMenuOpen = !userMenuOpen">
+            <span class="flex size-8 items-center justify-center rounded-[5px] bg-rail-2 font-mono text-[12px] font-semibold text-white">{{ initials }}</span>
+            <ChevronDown class="size-3.5 text-rail-ink-2" />
+          </button>
+          <Transition name="menu">
+          <div v-if="userMenuOpen" role="menu"
+            class="absolute top-full right-0 mt-2 w-64 origin-top-right overflow-hidden rounded-pass bg-surface text-ink shadow-raised">
+            <div class="border-b border-line px-4 py-3">
+              <p class="truncate text-[14px] font-semibold">{{ auth.user?.full_name }}</p>
+              <p class="truncate text-[13px] text-ink-2">{{ auth.user?.email }}</p>
+              <p class="label mt-1.5">{{ workspaceName }} · {{ auth.user?.role }}</p>
+            </div>
+            <router-link to="/settings/profile" role="menuitem" class="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-sunken">
+              <UserRound class="size-4 text-ink-2" />Profile
+            </router-link>
+            <router-link to="/settings/workspace" role="menuitem" class="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-sunken">
+              <Building2 class="size-4 text-ink-2" />Workspace settings
+            </router-link>
+            <button role="menuitem" class="flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left text-[14px] hover:bg-sunken" @click="handleLogout">
+              <LogOut class="size-4 text-ink-2" />Sign out
+            </button>
+          </div>
+          </Transition>
+        </div>
       </div>
 
-      <!-- Scrollable view content -->
-      <div class="flex-1 overflow-y-auto">
-        <router-view />
-      </div>
+      <!-- Mobile navigation -->
+      <Transition name="menu">
+      <nav v-if="mobileOpen" aria-label="Main" class="origin-top absolute inset-x-0 top-full flex flex-col border-t border-rail-2 bg-rail px-4 pb-4 md:hidden">
+        <router-link v-for="item in nav" :key="item.to" :to="item.to"
+          :aria-current="isActive(item) ? 'page' : undefined"
+          :class="['flex min-h-11 items-center gap-3 border-b border-rail-2 text-[15px]', isActive(item) ? 'font-semibold text-white' : 'text-rail-ink-2']">
+          <span :class="['size-1.5 rounded-full', isActive(item) ? 'bg-alert' : 'bg-transparent']" />{{ item.label }}
+        </router-link>
+      </nav>
+      </Transition>
+    </header>
+
+    <main class="min-h-0 flex-1 overflow-y-auto">
+      <router-view />
     </main>
 
     <!-- Notification drawer -->
-    <Transition
-      enter-active-class="transition-opacity duration-200"
-      enter-from-class="opacity-0"
-      leave-active-class="transition-opacity duration-150"
-      leave-to-class="opacity-0"
-    >
+    <Transition name="drawer" :duration="{ enter: 300, leave: 200 }">
       <div v-if="drawerOpen" class="fixed inset-0 z-50 flex justify-end">
-        <!-- Backdrop -->
-        <div class="flex-1 bg-black/[0.15]" @click="drawerOpen = false"/>
+        <div class="flex-1 bg-black/30" @click="drawerOpen = false" />
 
-        <!-- Panel (slide from right) -->
-        <div class="w-80 bg-white h-full shadow-[-4px_0_24px_rgba(0,0,0,0.08)] flex flex-col">
-
-          <!-- Drawer header -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-black/[0.06] flex-shrink-0">
+        <section class="drawer-panel flex h-full w-full max-w-sm flex-col bg-surface shadow-raised" role="dialog" aria-modal="true" aria-labelledby="notif-title">
+          <div class="flex items-center justify-between border-b border-line px-5 py-4">
             <div class="flex items-center gap-2">
-              <h2 class="text-base font-semibold text-[#1d1d1f]">Notifications</h2>
+              <h2 id="notif-title" class="text-base font-semibold text-ink">Notifications</h2>
               <span v-if="notifStore.unread > 0"
-                class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#ff3b30] text-white leading-none">
-                {{ notifStore.unread }}
-              </span>
+                class="rounded-[3px] bg-alert px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-on-alert">{{ notifStore.unread }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <button v-if="notifStore.unread > 0"
-                @click="notifStore.markAllRead()"
-                class="text-xs font-medium text-[#0071e3] hover:underline">
-                Mark all read
-              </button>
-              <button @click="drawerOpen = false"
-                class="p-1 rounded-lg text-[#6e6e73] hover:bg-[#f5f5f7] transition-colors">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+              <button v-if="notifStore.unread > 0" class="text-[13px] font-semibold text-ink underline-offset-4 hover:underline"
+                @click="notifStore.markAllRead()">Mark all read</button>
+              <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" aria-label="Close notifications" @click="drawerOpen = false">
+                <X class="size-4" />
               </button>
             </div>
           </div>
 
-          <!-- Notification list -->
           <div class="flex-1 overflow-y-auto">
-            <div v-if="notifStore.items.length === 0"
-              class="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-              <div class="w-10 h-10 rounded-xl bg-[#0071e3]/[0.06] flex items-center justify-center mb-3">
-                <svg class="w-5 h-5 text-[#0071e3]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                </svg>
-              </div>
-              <p class="text-sm font-medium text-[#1d1d1f]">All caught up</p>
-              <p class="text-xs text-[#6e6e73] mt-1">No notifications yet</p>
+            <div v-if="notifStore.items.length === 0" class="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
+              <Bell class="mb-3 size-6 text-ink-3" :stroke-width="1.5" />
+              <p class="text-sm font-semibold text-ink">All caught up</p>
+              <p class="mt-1 text-[13px] text-ink-3">No notifications yet</p>
             </div>
 
             <div v-for="n in notifStore.items" :key="n._id"
-              :class="['flex gap-3 px-4 py-3.5 border-b border-black/[0.04] last:border-0 transition-colors', !n.read && 'bg-[#0071e3]/[0.025]']">
-
-              <!-- Icon -->
-              <div :class="['w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', notifStyle[n.type]?.bg ?? 'bg-[#f5f5f7]']">
-                <!-- check -->
-                <svg v-if="notifStyle[n.type]?.icon === 'check'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                <!-- x -->
-                <svg v-else-if="notifStyle[n.type]?.icon === 'x'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                <!-- down arrow (export) -->
-                <svg v-else-if="notifStyle[n.type]?.icon === 'down'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                </svg>
-                <!-- user (invite) -->
-                <svg v-else-if="notifStyle[n.type]?.icon === 'user'" :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                </svg>
-                <!-- warn -->
-                <svg v-else :class="['w-4 h-4', notifStyle[n.type]?.color]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <div class="flex items-start justify-between gap-2">
-                  <p class="text-sm font-medium text-[#1d1d1f] leading-snug">{{ n.title }}</p>
-                  <div v-if="!n.read" class="w-1.5 h-1.5 rounded-full bg-[#0071e3] flex-shrink-0 mt-1.5"/>
-                </div>
-                <p class="text-xs text-[#6e6e73] mt-0.5 leading-relaxed">{{ n.body }}</p>
-                <p class="text-[10px] text-[#a0a0a5] mt-1">{{ formatRelTime(n.created_at) }}</p>
+              :class="['flex gap-3 border-b border-line px-5 py-4 last:border-0', !n.read && 'bg-alert-soft']">
+              <component :is="notifStyle[n.type]?.icon ?? Bell" :class="['mt-0.5 size-[18px] shrink-0', notifStyle[n.type]?.tone ?? 'text-ink']" :stroke-width="1.75" />
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold leading-snug text-ink">{{ n.title }}</p>
+                <p class="mt-0.5 text-[13px] leading-relaxed text-ink-2">{{ n.body }}</p>
+                <p class="mt-1 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">{{ formatRelTime(n.created_at) }}</p>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </Transition>
-
   </div>
 </template>

@@ -1,26 +1,33 @@
 <script setup lang="ts">
+import BrandMark from '@/components/ui/BrandMark.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#e8e8ed] flex items-center justify-center p-6">
-    <div class="text-center max-w-sm">
-      <div class="w-20 h-20 rounded-3xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] flex items-center justify-center mx-auto mb-6">
-        <span class="text-4xl font-bold text-[#0071e3] leading-none">?</span>
+  <div class="flex min-h-dvh flex-col bg-ground">
+    <header class="flex h-14 items-center bg-rail px-4 sm:px-8">
+      <router-link to="/dashboard" class="flex items-center gap-2.5">
+        <BrandMark :size="28" />
+        <span class="font-display text-[20px] font-bold uppercase leading-none tracking-[0.06em] text-white">DocuMind</span>
+      </router-link>
+    </header>
+    <main class="flex flex-1 items-center justify-center px-4 py-16">
+      <div class="grid w-full max-w-lg grid-cols-[1fr_120px] rounded-pass bg-surface shadow-pass">
+        <div class="flex flex-col gap-2 p-6">
+          <p class="label">Status</p>
+          <h1 class="text-[24px] font-semibold tracking-[-0.015em] text-ink">Page not found</h1>
+          <p class="text-[14px] text-ink-2">The page you're looking for doesn't exist or has been moved.</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <UiButton to="/dashboard">Dashboard</UiButton>
+            <UiButton variant="secondary" @click="router.back()">Go back</UiButton>
+          </div>
+        </div>
+        <div class="flex flex-col items-center justify-center border-l border-dashed border-line">
+          <p class="font-display text-[48px] font-semibold leading-none text-ink">404</p>
+        </div>
       </div>
-      <h1 class="text-2xl font-semibold text-[#1d1d1f] mb-2">Page not found</h1>
-      <p class="text-sm text-[#6e6e73] mb-8">The page you're looking for doesn't exist or has been moved.</p>
-      <div class="flex justify-center gap-3">
-        <button @click="router.back()"
-          class="px-5 py-2.5 rounded-xl bg-white border border-black/[0.1] text-sm font-medium text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-          Go back
-        </button>
-        <router-link to="/dashboard"
-          class="px-5 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium transition-colors shadow-[0_1px_3px_rgba(0,113,227,0.4)]">
-          Dashboard
-        </router-link>
-      </div>
-    </div>
+    </main>
   </div>
 </template>

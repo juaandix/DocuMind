@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { ArrowLeft, Upload, CircleAlert } from 'lucide-vue-next'
 import { useDocumentsStore } from '@/stores/documents.store'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import StatusChip from '@/components/ui/StatusChip.vue'
+import { docType, formatSize } from '@/utils/format'
 
 const store = useDocumentsStore()
 const dragActive = ref(false)
@@ -9,7 +14,10 @@ const uploadedDocId = ref<string | null>(null)
 const progress = ref(0)
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
-const ACCEPTED = '.pdf,.doc,.docx,.txt,.md'
+// Must match backend settings.allowed_mime_types.
+const ACCEPTED = '.pdf,.docx,.txt,.csv'
+
+const uploaded = computed(() => store.documents.find(d => d.id === uploadedDocId.value) ?? null)
 
 function onDrop(e: DragEvent) {
   dragActive.value = false
@@ -30,66 +38,76 @@ async function startUpload(file: File) {
     error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Upload failed'
   } finally { uploading.value = false; if (fileInput.value) fileInput.value.value = '' }
 }
+function reset() {
+  uploadedDocId.value = null
+  progress.value = 0
+}
 </script>
 
 <template>
-  <div class="p-8 max-w-2xl">
-    <div class="flex items-center gap-2 mb-6">
-      <router-link to="/documents" class="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-        </svg>
-      </router-link>
-      <h1 class="text-xl font-semibold text-[#1d1d1f]">Upload Document</h1>
-    </div>
+  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <router-link to="/documents" class="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink">
+      <ArrowLeft class="size-4" />Documents
+    </router-link>
+    <PageHeader title="Upload document" description="DocuMind extracts the text, splits it into chunks and indexes it so rooms can cite it." />
 
-    <div v-if="uploadedDocId" class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-10 text-center">
-      <div class="w-16 h-16 rounded-2xl bg-[#34c759]/[0.12] flex items-center justify-center mx-auto mb-4">
-        <svg class="w-8 h-8 text-[#34c759]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-        </svg>
+    <!-- Uploaded: follow its processing live -->
+    <section v-if="uploadedDocId" aria-live="polite" class="grid rounded-pass bg-surface shadow-pass sm:grid-cols-[1fr_150px]">
+      <div class="flex min-w-0 flex-col gap-3 px-5 py-5">
+        <p class="label">Uploaded</p>
+        <p class="truncate text-[17px] font-semibold text-ink">{{ uploaded?.original_name ?? 'Your document' }}</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <StatusChip :status="uploaded?.status ?? 'PROCESSING'" :changed="uploaded ? store.changedIds.has(uploaded.id) : false" />
+          <span class="text-[13px] text-ink-2">
+            {{ uploaded?.status === 'READY' ? 'Ready to use in chat rooms.' : uploaded?.status === 'ERROR' ? (uploaded.error_message ?? 'Processing failed.') : 'Processing. You can leave this page; we will notify you.' }}
+          </span>
+        </div>
+        <div class="mt-1 flex flex-wrap gap-2">
+          <UiButton :to="`/documents/${uploadedDocId}`" variant="secondary" size="sm">Open document</UiButton>
+          <UiButton variant="ghost" size="sm" @click="reset">Upload another</UiButton>
+        </div>
       </div>
-      <h2 class="text-lg font-semibold text-[#1d1d1f] mb-1">Upload successful</h2>
-      <p class="text-sm text-[#6e6e73] mb-6">Your document is being processed. This may take a moment.</p>
-      <div class="flex justify-center gap-3">
-        <router-link :to="`/documents/${uploadedDocId}`"
-          class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-5 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-          View document
-        </router-link>
-        <button @click="uploadedDocId = null; progress = 0"
-          class="bg-[#f5f5f7] hover:bg-gray-200 text-[#1d1d1f] text-sm font-medium rounded-lg px-5 py-2.5 transition-colors">
-          Upload another
-        </button>
+      <div class="flex flex-col justify-between gap-2 border-dashed border-line px-5 py-5 max-sm:border-t sm:border-l">
+        <p class="label">Type</p>
+        <p class="font-display text-[38px] font-semibold leading-none text-ink">{{ uploaded ? docType(uploaded.mime_type, uploaded.original_name) : '—' }}</p>
+        <p class="font-mono text-[12px] text-ink-3">{{ uploaded ? formatSize(uploaded.size_bytes) : '' }}</p>
       </div>
-    </div>
+    </section>
 
-    <div v-else class="space-y-4">
-      <div @dragover.prevent="dragActive = true" @dragleave.prevent="dragActive = false" @drop.prevent="onDrop" @click="fileInput?.click()"
+    <!-- Drop zone -->
+    <template v-else>
+      <label
         :class="[
-          'rounded-2xl border-2 border-dashed p-16 text-center cursor-pointer transition-all',
-          dragActive ? 'border-[#0071e3] bg-[#0071e3]/[0.04]' : 'border-black/[0.12] hover:border-[#0071e3] hover:bg-[#0071e3]/[0.02]',
-          uploading ? 'pointer-events-none opacity-60' : ''
-        ]">
-        <input ref="fileInput" type="file" :accept="ACCEPTED" class="hidden" @change="onFileChange" />
-        <div v-if="!uploading">
-          <div class="w-14 h-14 rounded-2xl bg-[#0071e3]/[0.08] flex items-center justify-center mx-auto mb-4">
-            <svg class="w-7 h-7 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-            </svg>
-          </div>
-          <p class="text-base font-medium text-[#1d1d1f]">Drop your file here</p>
-          <p class="text-sm text-[#6e6e73] mt-1">or <span class="text-[#0071e3]">browse to upload</span></p>
-          <p class="text-xs text-[#6e6e73] mt-3">PDF · DOCX · TXT · MD — max 50 MB</p>
+          'flex cursor-pointer flex-col items-center justify-center gap-4 rounded-pass border-2 border-dashed px-6 py-16 text-center',
+          dragActive ? 'border-line-strong bg-alert-soft' : 'border-line bg-surface hover:border-ink-3',
+          uploading && 'pointer-events-none',
+        ]"
+        @dragover.prevent="dragActive = true" @dragleave.prevent="dragActive = false" @drop.prevent="onDrop">
+        <input ref="fileInput" type="file" :accept="ACCEPTED" class="sr-only" :disabled="uploading" @change="onFileChange" />
+        <span class="flex size-12 items-center justify-center rounded-[6px] bg-primary text-on-primary">
+          <Upload class="size-5" />
+        </span>
+        <span>
+          <span class="block text-[17px] font-semibold text-ink">{{ dragActive ? 'Drop to upload' : 'Drop a file here or browse' }}</span>
+          <span class="mt-1 block text-[14px] text-ink-2">PDF, DOCX, CSV or TXT · up to 50 MB</span>
+        </span>
+        <span class="flex gap-1.5">
+          <span v-for="t in ['PDF', 'DOCX', 'CSV', 'TXT']" :key="t" class="rounded-[4px] border border-line px-2 py-0.5 font-mono text-[11px] font-semibold text-ink-2">{{ t }}</span>
+        </span>
+      </label>
+
+      <div v-if="uploading" class="flex flex-col gap-2" role="status">
+        <div class="flex justify-between font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-2">
+          <span>Uploading</span><span class="tabular">{{ progress }}%</span>
         </div>
-        <div v-else class="space-y-4">
-          <div class="w-10 h-10 border-2 border-[#0071e3]/20 border-t-[#0071e3] rounded-full animate-spin mx-auto"></div>
-          <p class="text-sm font-medium text-[#1d1d1f]">Uploading…</p>
-          <div class="h-1.5 bg-black/[0.06] rounded-full max-w-xs mx-auto overflow-hidden">
-            <div class="h-full rounded-full bg-[#0071e3] transition-all" :style="{ width: `${progress}%` }"></div>
-          </div>
+        <div class="h-1.5 overflow-hidden rounded-full bg-line">
+          <div class="h-full rounded-full bg-primary transition-[width] duration-200" :style="{ width: `${progress}%` }" />
         </div>
       </div>
-      <p v-if="error" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{{ error }}</p>
-    </div>
+
+      <p v-if="error" class="flex items-start gap-2 rounded-pass border border-danger bg-danger-soft px-4 py-3 text-[14px] text-danger" role="alert">
+        <CircleAlert class="mt-0.5 size-4 shrink-0" />{{ error }}
+      </p>
+    </template>
   </div>
 </template>

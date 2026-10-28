@@ -3,6 +3,11 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useDocumentsStore } from '@/stores/documents.store'
+import { ArrowLeft, Check } from 'lucide-vue-next'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import { docType } from '@/utils/format'
 
 const router = useRouter()
 const roomsStore = useRoomsStore()
@@ -33,69 +38,50 @@ async function submit() {
 </script>
 
 <template>
-  <div class="p-8 max-w-2xl">
-    <div class="flex items-center gap-2 mb-6">
-      <router-link to="/rooms" class="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-        </svg>
-      </router-link>
-      <h1 class="text-xl font-semibold text-[#1d1d1f]">New Chat Room</h1>
-    </div>
+  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <router-link to="/rooms" class="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink">
+      <ArrowLeft class="size-4" />Chat Rooms
+    </router-link>
+    <PageHeader title="New chat room" description="Pick the documents this room can answer from. You can change them later." />
 
-    <form @submit.prevent="submit" class="space-y-4">
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5">
-        <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-2">Room Name</label>
-        <input v-model="name" type="text" placeholder="e.g. Q4 Financial Report Analysis" required
-          class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-        />
-      </div>
+    <form class="flex flex-col gap-6" novalidate @submit.prevent="submit">
+      <section class="rounded-pass bg-surface p-5 shadow-pass">
+        <UiInput v-model="name" label="Room name" placeholder="e.g. Q4 Financial Report Analysis" required
+          :error="error === 'Name is required' ? error : undefined" />
+      </section>
 
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5">
-        <div class="flex items-center justify-between mb-4">
-          <label class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">Attach Documents</label>
-          <span v-if="selectedIds.length > 0" class="text-xs font-medium px-2 py-0.5 rounded-full bg-[#0071e3]/[0.08] text-[#0071e3]">
-            {{ selectedIds.length }} selected
-          </span>
+      <section class="overflow-hidden rounded-pass bg-surface shadow-pass" aria-labelledby="docs-title">
+        <div class="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 id="docs-title" class="text-[15px] font-semibold text-ink">Documents</h2>
+          <span v-if="selectedIds.length > 0" class="rounded-[4px] bg-alert px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-alert">{{ selectedIds.length }} selected</span>
         </div>
-
-        <div v-if="readyDocs.length === 0" class="text-center py-8 rounded-xl bg-[#f5f5f7]">
-          <p class="text-sm text-[#6e6e73]">No ready documents available</p>
-          <router-link to="/documents/upload" class="text-xs text-[#0071e3] hover:underline mt-1.5 block">Upload a document first</router-link>
+        <div v-if="readyDocs.length === 0" class="px-5 py-10 text-center">
+          <p class="text-[14px] text-ink-2">No documents are ready yet.</p>
+          <router-link to="/documents/upload" class="mt-1 inline-block text-[13px] font-semibold text-ink underline">Upload a document first</router-link>
         </div>
+        <ul v-else>
+          <li v-for="doc in readyDocs" :key="doc.id" class="border-t border-line first:border-t-0">
+            <label :class="['relative flex cursor-pointer items-center gap-4 px-5 py-3 has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-inset has-[input:focus-visible]:ring-alert', selectedIds.includes(doc.id) ? 'bg-alert-soft' : 'hover:bg-sunken']">
+              <input type="checkbox" class="sr-only" :checked="selectedIds.includes(doc.id)" @change="toggleDoc(doc.id)" />
+              <span aria-hidden="true" :class="['flex size-5 shrink-0 items-center justify-center rounded-[4px] border',
+                selectedIds.includes(doc.id) ? 'border-line-strong bg-primary text-on-primary' : 'border-ink-3']">
+                <Check v-if="selectedIds.includes(doc.id)" class="size-3.5" :stroke-width="3" />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-[14px] font-semibold text-ink">{{ doc.original_name }}</span>
+                <span class="block font-mono text-[12px] text-ink-3">{{ doc.chunk_count }} chunks</span>
+              </span>
+              <span class="font-mono text-[12px] text-ink-2">{{ docType(doc.mime_type, doc.original_name) }}</span>
+            </label>
+          </li>
+        </ul>
+      </section>
 
-        <div v-else class="space-y-1.5 max-h-64 overflow-y-auto">
-          <label v-for="doc in readyDocs" :key="doc.id"
-            :class="[
-              'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors',
-              selectedIds.includes(doc.id)
-                ? 'bg-[#0071e3]/[0.08]'
-                : 'hover:bg-[#f5f5f7]'
-            ]"
-          >
-            <input type="checkbox" :checked="selectedIds.includes(doc.id)" @change="toggleDoc(doc.id)"
-              class="w-4 h-4 rounded accent-[#0071e3]" />
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-[#1d1d1f] truncate">{{ doc.original_name }}</p>
-              <p class="text-xs text-[#6e6e73]">{{ doc.chunk_count }} chunks</p>
-            </div>
-          </label>
-        </div>
-      </div>
+      <p v-if="error && error !== 'Name is required'" class="rounded-pass border border-danger bg-danger-soft px-4 py-3 text-[14px] text-danger" role="alert">{{ error }}</p>
 
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-        <p class="text-sm text-red-600">{{ error }}</p>
-      </div>
-
-      <div class="flex gap-3">
-        <button type="submit" :disabled="creating"
-          class="flex-1 bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white text-sm font-medium rounded-lg py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-          {{ creating ? 'Creating…' : 'Create Room' }}
-        </button>
-        <router-link to="/rooms"
-          class="px-6 py-2.5 rounded-lg bg-[#f5f5f7] hover:bg-gray-200 text-[#1d1d1f] text-sm font-medium transition-colors text-center">
-          Cancel
-        </router-link>
+      <div class="flex flex-wrap gap-2">
+        <UiButton type="submit" :disabled="creating">{{ creating ? 'Creating…' : 'Create Room' }}</UiButton>
+        <UiButton to="/rooms" variant="ghost">Cancel</UiButton>
       </div>
     </form>
   </div>

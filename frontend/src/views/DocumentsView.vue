@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { Plus, Search, Trash2, FileText } from 'lucide-vue-next'
 import { useDocumentsStore } from '@/stores/documents.store'
+import UiButton from '@/components/ui/UiButton.vue'
+import StatusChip from '@/components/ui/StatusChip.vue'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import { docType, formatSize } from '@/utils/format'
 import type { DocumentStatus } from '@/types/document'
 
 const store = useDocumentsStore()
-const search = ref('')
+const route = useRoute()
+const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
+watch(() => route.query.q, (q) => { search.value = typeof q === 'string' ? q : '' })
 const statusFilter = ref<DocumentStatus | 'ALL'>('ALL')
 const tagFilter = ref<string | null>(null)
 const deleting = ref<string | null>(null)
@@ -43,17 +51,13 @@ const statusCounts = computed(() => ({
   ERROR: store.documents.filter(d => d.status === 'ERROR').length,
 }))
 
-const statusConfig: Record<DocumentStatus, { label: string; cls: string }> = {
-  UPLOADING: { label: 'Uploading', cls: 'bg-[#0071e3]/[0.08] text-[#0071e3]' },
-  PROCESSING: { label: 'Processing', cls: 'bg-[#ff9f0a]/[0.1] text-[#b86d00]' },
-  READY: { label: 'Ready', cls: 'bg-[#34c759]/[0.1] text-[#248a3d]' },
-  ERROR: { label: 'Error', cls: 'bg-red-50 text-red-600' },
-}
+const filters: { key: DocumentStatus | 'ALL'; label: string }[] = [
+  { key: 'ALL', label: 'All' },
+  { key: 'READY', label: 'Ready' },
+  { key: 'PROCESSING', label: 'Processing' },
+  { key: 'ERROR', label: 'Error' },
+]
 
-function formatSize(b: number) {
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
-  return `${(b / (1024 * 1024)).toFixed(1)} MB`
-}
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -64,101 +68,82 @@ async function handleDelete(id: string) {
 }
 </script>
 
+
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-semibold text-[#1d1d1f]">Documents</h1>
-        <p class="text-sm text-[#6e6e73] mt-0.5">{{ store.documents.length }} documents in your workspace</p>
-      </div>
-      <router-link to="/documents/upload"
-        class="inline-flex items-center gap-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-4 py-2 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        Upload
-      </router-link>
-    </div>
+  <div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <PageHeader title="Documents" :description="`${store.documents.length} documents in your workspace`">
+      <template #actions><UiButton to="/documents/upload"><Plus class="size-4" />Upload</UiButton></template>
+    </PageHeader>
 
     <!-- Search + filters -->
-    <div class="flex flex-col gap-3 mb-5">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input v-model="search" type="text" placeholder="Search documents…"
-            class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-black/[0.1] bg-white text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-          />
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button v-for="(label, key) in ({ ALL: 'All', READY: 'Ready', PROCESSING: 'Processing', ERROR: 'Error' } as Record<string,string>)" :key="key"
-            @click="statusFilter = key as DocumentStatus | 'ALL'"
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <label class="relative flex-1">
+          <span class="sr-only">Search documents</span>
+          <Search class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-3" />
+          <input v-model="search" type="search" placeholder="Search documents…"
+            class="min-h-11 w-full rounded-[5px] border border-line bg-surface pr-4 pl-10 text-[15px] text-ink placeholder:text-ink-3 focus:border-line-strong focus:ring-2 focus:ring-alert focus:outline-none" />
+        </label>
+        <div class="flex overflow-x-auto rounded-[5px] border border-line bg-surface" role="group" aria-label="Filter by status">
+          <button v-for="f in filters" :key="f.key" :aria-pressed="statusFilter === f.key"
             :class="[
-              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
-              statusFilter === key
-                ? key === 'ALL' ? 'bg-[#1d1d1f] text-white' : key === 'READY' ? 'bg-[#34c759] text-white' : key === 'ERROR' ? 'bg-red-500 text-white' : 'bg-[#ff9f0a] text-white'
-                : 'bg-white border border-black/[0.1] text-[#6e6e73] hover:text-[#1d1d1f]'
-            ]">
-            {{ label }}
-            <span class="ml-1 opacity-70">{{ statusCounts[key as keyof typeof statusCounts] }}</span>
+              'flex min-h-11 items-center gap-2 border-l border-line px-4 text-[13px] font-semibold whitespace-nowrap first:border-l-0',
+              statusFilter === f.key ? 'bg-primary text-on-primary' : 'text-ink-2 hover:bg-sunken hover:text-ink',
+            ]"
+            @click="statusFilter = f.key">
+            {{ f.label }}
+            <span class="font-mono text-[12px] tabular opacity-70">{{ statusCounts[f.key as keyof typeof statusCounts] }}</span>
           </button>
         </div>
       </div>
 
-      <!-- Tag cloud -->
-      <div v-if="allTags.length > 0" class="flex flex-wrap gap-1.5">
-        <button @click="tagFilter = null"
-          :class="['px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors', !tagFilter ? 'bg-[#0071e3]/[0.1] text-[#0071e3]' : 'bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]']">
-          All tags
-        </button>
-        <button v-for="tag in allTags" :key="tag" @click="tagFilter = tagFilter === tag ? null : tag"
-          :class="['px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors', tagFilter === tag ? 'bg-[#0071e3] text-white' : 'bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]']">
-          # {{ tag }}
-        </button>
+      <!-- Tags -->
+      <div v-if="allTags.length > 0" class="flex flex-wrap gap-1.5" role="group" aria-label="Filter by tag">
+        <button :aria-pressed="!tagFilter"
+          :class="['rounded-[4px] border px-2.5 py-1 font-mono text-[12px] font-semibold', !tagFilter ? 'border-line-strong bg-primary text-on-primary' : 'border-line text-ink-2 hover:text-ink']"
+          @click="tagFilter = null">All tags</button>
+        <button v-for="tag in allTags" :key="tag" :aria-pressed="tagFilter === tag"
+          :class="['rounded-[4px] border px-2.5 py-1 font-mono text-[12px] font-semibold', tagFilter === tag ? 'border-line-strong bg-primary text-on-primary' : 'border-line text-ink-2 hover:text-ink']"
+          @click="tagFilter = tagFilter === tag ? null : tag"># {{ tag }}</button>
       </div>
     </div>
 
-    <div v-if="filtered.length === 0" class="flex flex-col items-center justify-center py-24 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-      <div class="w-14 h-14 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-4">
-        <svg class="w-7 h-7 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-        </svg>
-      </div>
-      <p class="text-base font-medium text-[#1d1d1f]">No documents found</p>
-      <router-link v-if="!search" to="/documents/upload" class="text-sm text-[#0071e3] hover:underline mt-2">Upload your first document</router-link>
+    <div v-if="filtered.length === 0" class="flex flex-col items-center justify-center rounded-pass border border-dashed border-line bg-surface py-20 text-center">
+      <FileText class="mb-3 size-7 text-ink-3" :stroke-width="1.5" />
+      <p class="text-base font-semibold text-ink">No documents found</p>
+      <router-link v-if="!search" to="/documents/upload" class="mt-1 text-[13px] font-semibold text-ink underline">Upload your first document</router-link>
+      <button v-else class="mt-1 text-[13px] font-semibold text-ink underline" @click="search = ''">Clear search</button>
     </div>
 
-    <div v-else class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="border-b border-black/[0.06]">
-          <tr>
-            <th class="text-left px-5 py-3 text-xs font-semibold text-[#6e6e73]">Name</th>
-            <th class="text-left px-5 py-3 text-xs font-semibold text-[#6e6e73]">Status</th>
-            <th class="text-left px-5 py-3 text-xs font-semibold text-[#6e6e73]">Size</th>
-            <th class="text-left px-5 py-3 text-xs font-semibold text-[#6e6e73]">Date</th>
-            <th class="px-5 py-3"></th>
+    <div v-else class="relative overflow-x-auto rounded-pass bg-surface shadow-pass">
+      <table class="w-full table-fixed text-left">
+        <thead>
+          <tr class="label border-b border-line">
+            <th class="px-5 py-3 font-semibold">Name</th>
+            <th class="hidden w-20 px-3 py-3 font-semibold sm:table-cell">Type</th>
+            <th class="w-36 px-3 py-3 font-semibold">Status</th>
+            <th class="hidden w-28 px-3 py-3 text-right font-semibold md:table-cell">Size</th>
+            <th class="hidden w-36 px-3 py-3 text-right font-semibold md:table-cell">Added</th>
+            <th class="w-14 px-3 py-3"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-black/[0.04]">
-          <tr v-for="doc in filtered" :key="doc.id" class="hover:bg-[#f5f5f7] transition-colors group">
-            <td class="px-5 py-3.5">
-              <router-link :to="`/documents/${doc.id}`" class="font-medium text-[#1d1d1f] hover:text-[#0071e3] transition-colors">{{ doc.original_name }}</router-link>
-              <div v-if="doc.chunk_count" class="text-xs text-[#6e6e73] mt-0.5">{{ doc.chunk_count }} chunks</div>
+        <tbody>
+          <tr v-for="doc in filtered" :key="doc.id"
+            :class="['group border-t border-line first:border-t-0', store.changedIds.has(doc.id) ? 'bg-alert-soft' : 'hover:bg-sunken']">
+            <td class="px-5 py-3">
+              <router-link :to="`/documents/${doc.id}`" class="block truncate text-[14px] font-semibold text-ink hover:underline"
+                @click="store.acknowledge(doc.id)">{{ doc.original_name }}</router-link>
+              <span v-if="doc.chunk_count" class="font-mono text-[12px] text-ink-3">{{ doc.chunk_count }} chunks</span>
             </td>
-            <td class="px-5 py-3.5">
-              <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', statusConfig[doc.status].cls]">
-                {{ statusConfig[doc.status].label }}
-              </span>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-[#6e6e73]">{{ formatSize(doc.size_bytes) }}</td>
-            <td class="px-5 py-3.5 text-xs text-[#6e6e73]">{{ formatDate(doc.created_at) }}</td>
-            <td class="px-5 py-3.5 text-right">
-              <button @click="handleDelete(doc.id)" :disabled="deleting === doc.id"
-                class="p-1.5 rounded-lg text-[#6e6e73] hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
+            <td class="hidden px-3 py-3 font-mono text-[13px] text-ink-2 sm:table-cell">{{ docType(doc.mime_type, doc.original_name) }}</td>
+            <td class="px-3 py-3"><StatusChip :status="doc.status" :changed="store.changedIds.has(doc.id)" /></td>
+            <td class="hidden px-3 py-3 text-right font-mono text-[13px] whitespace-nowrap text-ink-2 md:table-cell">{{ formatSize(doc.size_bytes) }}</td>
+            <td class="hidden px-3 py-3 text-right font-mono text-[13px] whitespace-nowrap text-ink-2 md:table-cell">{{ formatDate(doc.created_at) }}</td>
+            <td class="px-3 py-3 text-right">
+              <button :disabled="deleting === doc.id" :aria-label="`Delete ${doc.original_name}`"
+                class="rounded p-2 text-ink-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-danger-soft hover:text-danger focus-visible:opacity-100 disabled:opacity-40"
+                @click="handleDelete(doc.id)">
+                <Trash2 class="size-4" />
               </button>
             </td>
           </tr>

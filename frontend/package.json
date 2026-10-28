@@ -11,13 +11,18 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "lint": "eslint . --ext .vue,.ts,.tsx --fix"
+    "lint": "eslint . --ext .vue,.ts,.tsx --fix",
+    "shots": "playwright test -c tests/visual/playwright.visual.config.ts"
   },
   "dependencies": {
+    "@fontsource-variable/red-hat-mono": "^5.3.0",
+    "@fontsource-variable/red-hat-text": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
     "@tanstack/vue-query": "^5.0.0",
     "@vueuse/core": "^10.0.0",
     "axios": "^1.7.0",
     "chart.js": "^4.4.0",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^2.2.0",
     "vue": "^3.5.0",
     "vue-chartjs": "^5.3.0",
