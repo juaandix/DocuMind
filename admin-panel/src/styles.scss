@@ -1,0 +1,220 @@
+@use '@angular/material' as mat;
+
+/*
+ * DocuMind design tokens. Same names and values as frontend/src/style.css —
+ * keep the two in sync. The admin follows the OS light/dark preference.
+ */
+:root {
+  --dm-ground: #edeff2;
+  --dm-surface: #ffffff;
+  --dm-sunken: #f2f3f5;
+  --dm-ink: #0b0d10;
+  --dm-ink-2: #474c55;
+  --dm-ink-3: #60656d;
+  --dm-line: #d5d8dd;
+  --dm-line-strong: #0b0d10;
+  --dm-rail: #0b0d10;
+  --dm-rail-2: #1c2127;
+  --dm-rail-ink: #e6e8eb;
+  --dm-rail-ink-2: #9aa0a8;
+  --dm-primary: #0b0d10;
+  --dm-on-primary: #ffffff;
+  --dm-alert: #ffd400;
+  --dm-on-alert: #0b0d10;
+  --dm-alert-soft: #fff4bf;
+  --dm-danger: #c4231c;
+  --dm-danger-soft: #fdecea;
+  --dm-focus: #0b0d10;
+  --dm-shadow: 0 0 0 1px rgb(11 13 16 / 0.09), 0 1px 2px rgb(11 13 16 / 0.05);
+  --dm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --font-sans: 'Red Hat Text Variable', system-ui, sans-serif;
+  --font-mono: 'Red Hat Mono Variable', ui-monospace, monospace;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dm-ground: #0b0d10;
+    --dm-surface: #15181d;
+    --dm-sunken: #101317;
+    --dm-ink: #f2f3f5;
+    --dm-ink-2: #b4b9c1;
+    --dm-ink-3: #8d939c;
+    --dm-line: #2a2f37;
+    --dm-line-strong: #f2f3f5;
+    --dm-rail: #101317;
+    --dm-primary: #f2f3f5;
+    --dm-on-primary: #0b0d10;
+    --dm-alert-soft: #2e2a0c;
+    --dm-danger: #ff6b5e;
+    --dm-danger-soft: #3a1614;
+    --dm-focus: #ffd400;
+    --dm-shadow: 0 0 0 1px rgb(255 255 255 / 0.07), 0 1px 2px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+/* ── Angular Material theme generated from the tokens ─────────────────────── */
+
+$ink-palette: (
+  50: #e6e8eb, 100: #c9ccd2, 200: #9aa0a8, 300: #6b7280, 400: #474c55,
+  500: #1c2127, 600: #15181d, 700: #101317, 800: #0b0d10, 900: #050608,
+  A100: #e6e8eb, A200: #9aa0a8, A400: #1c2127, A700: #0b0d10,
+  contrast: (
+    50: #0b0d10, 100: #0b0d10, 200: #0b0d10, 300: #ffffff, 400: #ffffff,
+    500: #ffffff, 600: #ffffff, 700: #ffffff, 800: #ffffff, 900: #ffffff,
+    A100: #0b0d10, A200: #0b0d10, A400: #ffffff, A700: #ffffff,
+  ),
+);
+
+$yellow-palette: (
+  50: #fff9db, 100: #fff4bf, 200: #ffec80, 300: #ffe340, 400: #ffdb1a,
+  500: #ffd400, 600: #e6bf00, 700: #c2a100, 800: #9e8300, 900: #6b5900,
+  A100: #fff4bf, A200: #ffe340, A400: #ffd400, A700: #c2a100,
+  contrast: (
+    50: #0b0d10, 100: #0b0d10, 200: #0b0d10, 300: #0b0d10, 400: #0b0d10,
+    500: #0b0d10, 600: #0b0d10, 700: #0b0d10, 800: #ffffff, 900: #ffffff,
+    A100: #0b0d10, A200: #0b0d10, A400: #0b0d10, A700: #0b0d10,
+  ),
+);
+
+$red-palette: (
+  50: #fdecea, 100: #f9cfcb, 200: #f2a29b, 300: #ea6f65, 400: #ff6b5e,
+  500: #c4231c, 600: #a81d17, 700: #8c1812, 800: #70130e, 900: #4d0d0a,
+  A100: #f9cfcb, A200: #ea6f65, A400: #c4231c, A700: #8c1812,
+  contrast: (
+    50: #0b0d10, 100: #0b0d10, 200: #0b0d10, 300: #0b0d10, 400: #0b0d10,
+    500: #ffffff, 600: #ffffff, 700: #ffffff, 800: #ffffff, 900: #ffffff,
+    A100: #0b0d10, A200: #0b0d10, A400: #ffffff, A700: #ffffff,
+  ),
+);
+
+$typography: mat.define-typography-config($font-family: 'Red Hat Text Variable, system-ui, sans-serif');
+
+$light-theme: mat.define-light-theme((
+  color: (
+    primary: mat.define-palette($ink-palette, 800, 500, 900),
+    accent: mat.define-palette($yellow-palette, 500, 300, 700),
+    warn: mat.define-palette($red-palette, 500, 300, 700),
+  ),
+  typography: $typography,
+  density: 0,
+));
+
+$dark-theme: mat.define-dark-theme((
+  color: (
+    primary: mat.define-palette($ink-palette, 50, 50, 200),
+    accent: mat.define-palette($yellow-palette, 500, 300, 700),
+    warn: mat.define-palette($red-palette, 400, 300, 500),
+  ),
+));
+
+// Only the components the admin uses, to keep the CSS bundle small.
+@mixin component-themes($theme) {
+  @include mat.core-theme($theme);
+  @include mat.button-theme($theme);
+  @include mat.button-toggle-theme($theme);
+  @include mat.card-theme($theme);
+  @include mat.form-field-theme($theme);
+  @include mat.input-theme($theme);
+  @include mat.table-theme($theme);
+  @include mat.paginator-theme($theme);
+  @include mat.progress-spinner-theme($theme);
+  @include mat.sidenav-theme($theme);
+  @include mat.icon-theme($theme);
+  @include mat.tooltip-theme($theme);
+  @include mat.select-theme($theme);
+}
+
+@mixin component-colors($theme) {
+  @include mat.core-color($theme);
+  @include mat.button-color($theme);
+  @include mat.button-toggle-color($theme);
+  @include mat.card-color($theme);
+  @include mat.form-field-color($theme);
+  @include mat.input-color($theme);
+  @include mat.table-color($theme);
+  @include mat.paginator-color($theme);
+  @include mat.progress-spinner-color($theme);
+  @include mat.sidenav-color($theme);
+  @include mat.icon-color($theme);
+  @include mat.tooltip-color($theme);
+  @include mat.select-color($theme);
+}
+
+@include mat.core();
+@include component-themes($light-theme);
+
+@media (prefers-color-scheme: dark) {
+  @include component-colors($dark-theme);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+html {
+  font-family: var(--font-sans);
+  background: var(--dm-ground);
+  color: var(--dm-ink);
+  -webkit-font-smoothing: antialiased;
+  caret-color: var(--dm-ink);
+  scrollbar-color: var(--dm-ink-3) transparent;
+}
+body { background: var(--dm-ground); color: var(--dm-ink); }
+::selection { background: var(--dm-alert); color: var(--dm-on-alert); }
+*:focus-visible { outline: 2px solid var(--dm-focus); outline-offset: 2px; }
+table, .tabular { font-variant-numeric: tabular-nums; }
+
+/* Uppercase tracked mono: segment labels and table headers. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dm-ink-3);
+}
+
+/* Shared page scaffolding used by every feature. */
+.page { padding: 32px; max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; margin: 0; color: var(--dm-ink); }
+.page-sub { margin: 4px 0 0; font-size: 15px; color: var(--dm-ink-2); }
+.panel { background: var(--dm-surface); border-radius: 6px; box-shadow: var(--dm-shadow); overflow: hidden; }
+.loading { display: flex; justify-content: center; padding: 60px; }
+.full-width { width: 100%; }
+
+/* Status / plan tags: state carried by form as well as colour. */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--dm-line-strong); border-radius: 4px;
+  padding: 2px 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--dm-ink); white-space: nowrap;
+}
+.tag--fill { background: var(--dm-primary); color: var(--dm-on-primary); border-color: var(--dm-primary); }
+.tag--alert { background: var(--dm-alert); color: var(--dm-on-alert); border-color: var(--dm-alert); }
+.tag--danger { background: var(--dm-danger-soft); color: var(--dm-danger); border-color: var(--dm-danger); }
+.tag--pending { border-style: dashed; border-color: var(--dm-ink-3); color: var(--dm-ink-2); }
+
+/* ── Material overrides that bring components into the world ──────────────── */
+
+.mat-mdc-card { border-radius: 6px !important; box-shadow: var(--dm-shadow) !important; background: var(--dm-surface) !important; }
+.mat-mdc-table { background: var(--dm-surface) !important; }
+.mat-mdc-header-cell {
+  font-family: var(--font-mono) !important; font-size: 11px !important; font-weight: 600 !important;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--dm-ink-3) !important;
+}
+.mat-mdc-cell { font-size: 14px !important; color: var(--dm-ink) !important; border-bottom-color: var(--dm-line) !important; }
+.mat-mdc-header-cell { border-bottom-color: var(--dm-line) !important; }
+.mat-mdc-row:hover .mat-mdc-cell { background: var(--dm-sunken); }
+.mat-mdc-paginator { background: transparent !important; color: var(--dm-ink-2) !important; }
+.mdc-button { border-radius: 5px !important; font-weight: 600 !important; letter-spacing: 0 !important; }
+.mdc-button:active:not(:disabled) { transform: scale(0.97); }
+.mdc-button { transition: transform 160ms var(--dm-ease-out) !important; }
+.mat-mdc-form-field { --mdc-outlined-text-field-container-shape: 5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0ms !important; }
+  .mdc-button:active:not(:disabled) { transform: none; }
+}

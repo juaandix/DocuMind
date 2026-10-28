@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { MatTableModule } from '@angular/material/table'
-import { MatChipsModule } from '@angular/material/chips'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
@@ -11,21 +10,14 @@ import { environment } from '../../../environments/environment'
 
 type StatusFilter = 'ALL' | 'FAILURE' | 'PENDING' | 'STARTED' | 'SUCCESS'
 
-const CHIP_COLOR: Record<string, { bg: string; color: string }> = {
-  SUCCESS: { bg: '#d1fae5', color: '#065f46' },
-  FAILURE: { bg: '#fee2e2', color: '#991b1b' },
-  STARTED: { bg: '#dbeafe', color: '#1e40af' },
-  PENDING: { bg: '#f3f4f6', color: '#374151' },
-}
-
 @Component({
   selector: 'app-logs',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatChipsModule, MatProgressSpinnerModule, MatButtonToggleModule, FormsModule],
+  imports: [CommonModule, MatTableModule, MatProgressSpinnerModule, MatButtonToggleModule, FormsModule],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Celery Job Logs</h1>
+        <div><h1 class="page-title">Celery Job Logs</h1><p class="page-sub">Background jobs: document processing and PDF exports.</p></div>
         <mat-button-toggle-group [(ngModel)]="statusFilter" (ngModelChange)="applyFilter()" class="toggle-group">
           <mat-button-toggle value="ALL">All</mat-button-toggle>
           <mat-button-toggle value="FAILURE">Failed</mat-button-toggle>
@@ -39,7 +31,8 @@ const CHIP_COLOR: Record<string, { bg: string; color: string }> = {
 
       <div *ngIf="!loading && filtered.length === 0" class="empty-state">No jobs found.</div>
 
-      <table mat-table [dataSource]="filtered" class="mat-elevation-z1 full-width" *ngIf="!loading && filtered.length > 0">
+      <div class="panel table-box" *ngIf="!loading && filtered.length > 0">
+      <table mat-table [dataSource]="filtered" class="full-width">
         <ng-container matColumnDef="task">
           <th mat-header-cell *matHeaderCellDef>Task</th>
           <td mat-cell *matCellDef="let j" class="task-cell">{{ j.task_name }}</td>
@@ -48,9 +41,7 @@ const CHIP_COLOR: Record<string, { bg: string; color: string }> = {
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let j">
-            <span class="status-chip" [style.background]="chipStyle(j.status).bg" [style.color]="chipStyle(j.status).color">
-              {{ j.status }}
-            </span>
+            <span class="tag" [ngClass]="statusClass(j.status)">{{ j.status }}</span>
           </td>
         </ng-container>
 
@@ -63,7 +54,7 @@ const CHIP_COLOR: Record<string, { bg: string; color: string }> = {
 
         <ng-container matColumnDef="error">
           <th mat-header-cell *matHeaderCellDef>Error</th>
-          <td mat-cell *matCellDef="let j" class="error-cell" [title]="j.error ?? ''">
+          <td mat-cell *matCellDef="let j" class="error-cell" [class.error-cell--none]="!j.error" [title]="j.error ?? ''">
             {{ j.error ?? '—' }}
           </td>
         </ng-container>
@@ -79,25 +70,21 @@ const CHIP_COLOR: Record<string, { bg: string; color: string }> = {
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"
             [class.row-failure]="row.status === 'FAILURE'"></tr>
       </table>
+      </div>
     </div>
   `,
   styles: [`
-    .page { padding: 32px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-    .page-title { font-size: 22px; font-weight: 700; margin: 0; }
-    .toggle-group { height: 36px; font-size: 12px; }
-    .loading { display: flex; justify-content: center; padding: 60px; }
-    .empty-state { text-align: center; color: #9ca3af; padding: 48px; font-size: 14px; }
-    .full-width { width: 100%; }
+    .toggle-group { font-size: 13px; }
+    .empty-state { text-align: center; color: var(--dm-ink-2); padding: 48px; font-size: 14px; border: 1px dashed var(--dm-line); border-radius: 6px; background: var(--dm-surface); }
+    .table-box { overflow-x: auto; }
 
-    .task-cell { font-size: 12px; font-family: monospace; color: #374151; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mono { font-family: monospace; font-size: 12px; }
-    .secondary { font-size: 12px; color: #6b7280; }
-    .error-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #ef4444; font-family: monospace; }
+    .task-cell { font-family: var(--font-mono); font-size: 13px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mono { font-family: var(--font-mono); font-size: 13px; }
+    .secondary { font-family: var(--font-mono); font-size: 13px; color: var(--dm-ink-2) !important; }
+    .error-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 13px; color: var(--dm-danger) !important; }
 
-    .status-chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
-
-    .row-failure td { background: #fff8f8 !important; }
+    .error-cell--none { color: var(--dm-ink-3) !important; }
+    .row-failure td { background: var(--dm-danger-soft) !important; }
   `],
 })
 export class LogsComponent implements OnInit {
@@ -127,7 +114,10 @@ export class LogsComponent implements OnInit {
       : this.jobs.filter(j => j.status === this.statusFilter)
   }
 
-  chipStyle(status: string) {
-    return CHIP_COLOR[status] ?? { bg: '#f3f4f6', color: '#374151' }
+  // State by form as well as colour: failed = red, pending/running = dashed, done = solid.
+  statusClass(status: string) {
+    if (status === 'FAILURE') return 'tag--danger'
+    if (status === 'PENDING' || status === 'STARTED') return 'tag--pending'
+    return ''
   }
 }

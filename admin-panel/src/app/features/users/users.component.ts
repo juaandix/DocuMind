@@ -7,7 +7,6 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatInputModule } from '@angular/material/input'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatChipsModule } from '@angular/material/chips'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { GlobalUser } from '../../shared/models'
 import { environment } from '../../../environments/environment'
@@ -17,14 +16,12 @@ import { environment } from '../../../environments/environment'
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatTableModule, MatButtonModule,
-    MatInputModule, MatFormFieldModule, MatProgressSpinnerModule,
-    MatChipsModule, MatTooltipModule,
+    MatInputModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule,
   ],
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">Users</h1>
-        <span class="count-badge">{{ users.length }} results</span>
+        <div><h1 class="page-title">Users</h1><p class="page-sub">{{ users.length }} results</p></div>
       </div>
 
       <mat-form-field appearance="outline" class="search-field">
@@ -36,12 +33,13 @@ import { environment } from '../../../environments/environment'
 
       <div *ngIf="!loading && users.length === 0" class="empty-state">No users found.</div>
 
-      <table mat-table [dataSource]="users" class="mat-elevation-z1 full-width" *ngIf="!loading && users.length > 0">
+      <div class="panel table-box" *ngIf="!loading && users.length > 0">
+      <table mat-table [dataSource]="users" class="full-width">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Name</th>
           <td mat-cell *matCellDef="let u">
             <div class="user-cell">
-              <div class="avatar">{{ initials(u.full_name) }}</div>
+              <div class="avatar" aria-hidden="true">{{ initials(u.full_name) }}</div>
               <div>
                 <div class="user-name">{{ u.full_name }}</div>
                 <div class="user-meta">{{ u.email }}</div>
@@ -58,15 +56,14 @@ import { environment } from '../../../environments/environment'
         <ng-container matColumnDef="role">
           <th mat-header-cell *matHeaderCellDef>Role</th>
           <td mat-cell *matCellDef="let u">
-            <mat-chip [class]="'role-chip role-' + u.role.toLowerCase()" highlighted>{{ u.role }}</mat-chip>
+            <span class="tag" [class.tag--fill]="u.role === 'OWNER' || u.role === 'PLATFORM_ADMIN'">{{ u.role }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let u">
-            <span [class]="'status-dot ' + (u.is_active ? 'active' : 'inactive')"></span>
-            {{ u.is_active ? 'Active' : 'Inactive' }}
+            <span class="tag" [class.tag--pending]="!u.is_active">{{ u.is_active ? 'Active' : 'Inactive' }}</span>
           </td>
         </ng-container>
 
@@ -90,34 +87,21 @@ import { environment } from '../../../environments/environment'
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
+      </div>
     </div>
   `,
   styles: [`
-    .page { padding: 32px; }
-    .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .page-title { font-size: 22px; font-weight: 700; margin: 0; }
-    .count-badge { font-size: 12px; background: #f3f4f6; color: #6b7280; padding: 3px 10px; border-radius: 20px; }
-    .search-field { width: 340px; margin-bottom: 12px; display: block; }
-    .loading { display: flex; justify-content: center; padding: 60px; }
-    .empty-state { text-align: center; color: #9ca3af; padding: 48px; font-size: 14px; }
-    .full-width { width: 100%; }
-    .action-btn { font-size: 12px; height: 28px; line-height: 28px; }
+    .search-field { width: 100%; max-width: 360px; display: block; margin-bottom: -20px; }
+    .empty-state { text-align: center; color: var(--dm-ink-2); padding: 48px; font-size: 14px; border: 1px dashed var(--dm-line); border-radius: 6px; background: var(--dm-surface); }
+    .table-box { overflow-x: auto; }
+    .action-btn { font-size: 13px; }
 
     .user-cell { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-    .avatar { width: 34px; height: 34px; border-radius: 50%; background: #e0e7ff; color: #4f46e5;
-              display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-    .user-name { font-size: 13px; font-weight: 500; }
-    .user-meta { font-size: 11px; color: #9ca3af; }
-    .secondary { font-size: 13px; color: #6b7280; }
-
-    .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
-    .status-dot.active { background: #10b981; }
-    .status-dot.inactive { background: #d1d5db; }
-
-    .role-chip { font-size: 11px !important; min-height: 22px !important; }
-    .role-owner { background: #ede9fe !important; color: #7c3aed !important; }
-    .role-admin { background: #e0e7ff !important; color: #4338ca !important; }
-    .role-member { background: #f3f4f6 !important; color: #6b7280 !important; }
+    .avatar { width: 32px; height: 32px; border-radius: 5px; background: var(--dm-surface); box-shadow: var(--dm-shadow); color: var(--dm-ink);
+              display: flex; align-items: center; justify-content: center; font: 600 12px var(--font-mono); flex-shrink: 0; }
+    .user-name { font-size: 14px; font-weight: 600; }
+    .user-meta { font-size: 13px; color: var(--dm-ink-2); }
+    .secondary { font-size: 13px; color: var(--dm-ink-2); font-family: var(--font-mono); }
   `],
 })
 export class UsersComponent implements OnInit {
