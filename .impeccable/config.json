@@ -1,89 +1,9 @@
 {
   "detector": {
     "ignoreRules": [],
-    "ignoreFiles": [],
-    "ignoreValues": [
-      {
-        "rule": "tight-leading",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-board.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.081Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "oversized-h1",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-board.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.102Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "cramped-padding",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-board.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.125Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "tight-leading",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-split.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.159Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "oversized-h1",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-split.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.181Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "cramped-padding",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-split.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.204Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "tight-leading",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-pass.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.225Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "oversized-h1",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-pass.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.247Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      },
-      {
-        "rule": "cramped-padding",
-        "value": "*",
-        "files": [
-          ".impeccable/mocks/decision/l-pass.html"
-        ],
-        "createdAt": "2026-10-28T16:39:41.267Z",
-        "reason": "Spent decision-round sketch (gitignored scratch), not shipped; the built LandingView.vue scans clean"
-      }
-    ]
+    "ignoreFiles": [
+      ".impeccable/mocks/decision/**"
+    ],
+    "ignoreValues": []
   }
 }
