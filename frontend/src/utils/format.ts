@@ -20,8 +20,13 @@ const TYPES: Record<string, string> = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
 }
 
+const EXTENSIONS = ['PDF', 'DOCX', 'CSV', 'TXT']
+
 export function docType(mime: string, name = '') {
-  return TYPES[mime] ?? name.split('.').pop()?.toUpperCase() ?? 'FILE'
+  // The file's own extension wins: some clients send a generic or wrong MIME type.
+  const ext = name.includes('.') ? name.split('.').pop()!.toUpperCase() : ''
+  if (EXTENSIONS.includes(ext)) return ext
+  return TYPES[mime] ?? (ext || 'FILE')
 }
 
 export function formatDate(iso: string | null) {

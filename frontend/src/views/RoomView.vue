@@ -11,12 +11,14 @@ import { useI18n } from 'vue-i18n'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useDocumentsStore } from '@/stores/documents.store'
 import { useAuthStore } from '@/stores/auth.store'
+import { useWorkspaceStore } from '@/stores/workspace.store'
 import type { Message } from '@/types/room'
 
 const route = useRoute()
 const roomsStore = useRoomsStore()
 const docsStore = useDocumentsStore()
 const authStore = useAuthStore()
+const wsStore = useWorkspaceStore()
 const { t } = useI18n()
 
 const roomId = computed(() => route.params.id as string)
@@ -64,7 +66,7 @@ const pendingDocIds = ref<string[]>([])
 const savingDocs = ref(false)
 
 onMounted(async () => {
-  await Promise.all([roomsStore.fetchRooms(), docsStore.fetchDocuments(), roomsStore.fetchMessages(roomId.value)])
+  await Promise.all([roomsStore.fetchRooms(), docsStore.fetchDocuments(), roomsStore.fetchMessages(roomId.value), wsStore.fetchMembers().catch(() => {})])
   const found = roomsStore.rooms.find(r => r.id === roomId.value)
   if (found) roomsStore.activeRoom = found
   roomsStore.connectWebSocket(roomId.value)
@@ -111,7 +113,9 @@ const sourceMsg = computed(() => {
 
 function authorName(msg: Message) {
   if (isOwnMessage(msg)) return t('common.you')
-  return roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name ?? t('common.member')
+  return roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name
+    ?? wsStore.members.find(m => m.id === msg.author_id)?.full_name
+    ?? t('common.member')
 }
 
 function isOwnMessage(msg: Message) { return msg.author_id === authStore.user?.id }
@@ -266,6 +270,9 @@ function renderContent(text: string): string {
 
         <!-- Composer -->
         <div class="shrink-0 border-t border-line bg-surface px-4 py-4 sm:px-8">
+          <p v-if="roomsStore.aiError" class="mx-auto mb-3 max-w-3xl rounded-[5px] border border-danger bg-danger-soft px-3.5 py-2.5 text-[14px] text-danger" role="alert">
+            {{ $t('room.aiError') }}
+          </p>
           <form class="mx-auto max-w-3xl" @submit.prevent="sendMessage">
             <div class="flex items-end gap-2 rounded-[6px] border border-line-strong bg-surface p-2 pl-4 focus-within:ring-2 focus-within:ring-alert">
               <label class="flex-1">

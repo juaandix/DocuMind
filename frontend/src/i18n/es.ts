@@ -35,7 +35,6 @@ const es: typeof en = {
     PROCESSING: 'Procesando',
     READY: 'Listo',
     ERROR: 'Error',
-    now: 'Ya',
     nowReady: 'Ya listo',
     nowFailed: 'Ha fallado',
   },
@@ -214,6 +213,7 @@ const es: typeof en = {
     noneAttached: 'Ninguno adjunto',
     noneReady: 'No hay documentos listos',
     justYou: 'Solo tú',
+    aiError: 'DocuMind no ha podido responder esta vez. Inténtalo de nuevo en un momento; si sigue fallando, revisa la configuración del proveedor de IA.',
   },
   settings: {
     title: 'Ajustes',

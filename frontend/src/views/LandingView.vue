@@ -168,29 +168,12 @@ const facts = [
               </div>
               <div class="flex flex-col gap-3" aria-live="polite">
                 <SourcePass v-for="(s, i) in sources" :key="i" :index="i + 1" :document-name="s.name" :page="s.page" :score="s.score"
-                  :excerpt="s.excerpt" :active="active === i" :class="active === i ? '' : 'max-md:hidden'" />
+                  :excerpt="s.excerpt" :active="active === i" :class="active === i ? '' : 'max-md:hidden'" style="--notch: var(--dm-surface)" />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Facts as one segmented strip: only what is true of the product -->
-        <div class="mx-auto max-w-[1440px] px-4 pb-20 sm:px-8 lg:px-14 lg:pb-28">
-          <h2 class="sr-only">{{ $t('landing.factsTitle') }}</h2>
-          <dl class="grid overflow-hidden rounded-pass bg-surface shadow-pass sm:grid-cols-2 lg:grid-cols-5">
-            <div v-for="f in facts" :key="f.label" class="border-line px-6 py-6 max-lg:border-b lg:border-r">
-              <dt class="label">{{ $t(f.label) }}</dt>
-              <dd class="mt-2 font-display text-[30px] font-bold uppercase leading-none">{{ f.i18n ? $t(f.value) : f.value }}</dd>
-            </div>
-            <a :href="REPO" target="_blank" rel="noopener" class="group flex flex-col justify-between gap-2 px-6 py-6 hover:bg-sunken">
-              <span class="label">{{ $t('landing.factCode') }}</span>
-              <span class="flex items-center gap-2 font-display text-[30px] font-bold uppercase leading-none">
-                <Github class="size-6" />{{ $t('landing.factCodeValue') }}
-                <ArrowRight class="size-5 transition-transform group-hover:translate-x-1" />
-              </span>
-            </a>
-          </dl>
-        </div>
       </section>
 
       <!-- Close: the action again, on the ink -->
@@ -206,17 +189,28 @@ const facts = [
               <input v-model="closingEmail" type="email" autocomplete="email" :placeholder="$t('landing.emailPlaceholder')"
                 class="min-h-[52px] w-full rounded-[5px] border border-rail-2 bg-rail-2 px-4 text-[16px] text-white placeholder:text-rail-ink-2 focus:ring-2 focus:ring-alert focus:outline-none" />
             </label>
-            <button type="submit" class="press inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[5px] bg-alert px-6 text-[16px] font-semibold text-on-alert hover:brightness-95">
+            <button type="submit" class="press inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[5px] bg-white px-6 text-[16px] font-semibold text-rail hover:bg-rail-ink active:bg-alert active:text-on-alert">
               {{ $t('landing.create') }} <ArrowRight class="size-4" />
             </button>
           </form>
         </div>
+
+        <!-- What comes in the box: only true product facts, as one segment row -->
+        <dl class="mt-14 flex flex-wrap gap-x-10 gap-y-4 border-t border-rail-2 pt-6" :aria-label="$t('landing.factsTitle')">
+          <div v-for="f in facts" :key="f.label">
+            <dt class="label !text-rail-ink-2">{{ $t(f.label) }}</dt>
+            <dd class="mt-1 font-mono text-[14px] font-semibold text-white">{{ f.i18n ? $t(f.value) : f.value }}</dd>
+          </div>
+          <div>
+            <dt class="label !text-rail-ink-2">{{ $t('landing.factCode') }}</dt>
+            <dd class="mt-1"><a :href="REPO" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 font-mono text-[14px] font-semibold text-white underline-offset-4 hover:underline"><Github class="size-4" />github.com/juaandix/DocuMind</a></dd>
+          </div>
+        </dl>
       </section>
     </main>
 
     <footer class="border-t border-rail-2">
-      <div class="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-10 sm:px-8 lg:px-14">
-        <p class="font-display text-[clamp(64px,15vw,220px)] font-bold uppercase leading-[0.8] tracking-[0.02em] text-white" aria-hidden="true">DocuMind</p>
+      <div class="mx-auto flex max-w-[1440px] flex-col gap-8 px-4 py-8 sm:px-8 lg:px-14">
         <div class="flex flex-wrap items-center justify-between gap-4 text-[14px] text-rail-ink-2">
           <p>{{ $t('landing.footer') }}</p>
           <div class="flex gap-5">

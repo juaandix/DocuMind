@@ -46,8 +46,8 @@ import { AuthService } from '../../core/services/auth.service'
     .mark { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 5px;
       background: var(--dm-alert); color: var(--dm-on-alert); font: 700 20px/1 var(--font-display); }
     .notch { position: absolute; top: 50%; right: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--dm-rail); transform: translateY(-50%); }
-    .wordmark { font: 700 20px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; }
-    .scope { margin-left: 6px; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-alert); }
+    .wordmark { font: 700 20px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--dm-on-ink); }
+    .scope { margin-left: 6px; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-rail-ink-2); }
     .center { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
     .card { width: 100%; max-width: 400px; background: var(--dm-surface); border-radius: 6px; box-shadow: var(--dm-shadow); padding: 28px; }
     .title { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; color: var(--dm-ink); }

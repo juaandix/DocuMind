@@ -12,22 +12,23 @@ const props = defineProps<{
   active?: boolean
 }>()
 
+// Break opportunities after underscores so the whole name can wrap and stay identifiable.
+const parts = computed(() => props.documentName.split(/(?<=_)/))
 const match = computed(() => (props.score <= 1 ? props.score : props.score / 100).toFixed(2))
 </script>
 
 <template>
-  <article :class="['grid grid-cols-[1fr_auto] rounded-pass bg-surface shadow-pass transition-shadow duration-200',
+  <article :class="['source-pass relative grid grid-cols-[1fr_auto] rounded-pass bg-surface shadow-pass transition-shadow duration-200',
     active ? 'ring-2 ring-alert' : '']">
     <div class="flex min-w-0 flex-col gap-2 px-4 py-3">
-      <div class="flex gap-5">
-        <div class="min-w-0">
+      <div class="flex flex-col gap-1">
+        <div class="flex items-baseline justify-between gap-3">
           <p class="label">{{ $t('common.document') }}</p>
-          <p class="truncate text-[14px] font-semibold text-ink" :title="documentName">{{ documentName }}</p>
+          <p v-if="page" class="label">{{ $t('common.page') }} <span class="font-mono text-[13px] font-semibold text-ink">{{ page }}</span></p>
         </div>
-        <div v-if="page">
-          <p class="label">{{ $t('common.page') }}</p>
-          <p class="font-mono text-[13px] font-semibold text-ink">{{ page }}</p>
-        </div>
+        <p class="line-clamp-2 text-[14px] font-semibold leading-snug text-ink [overflow-wrap:anywhere]" :title="documentName">
+          <template v-for="(part, i) in parts" :key="i">{{ part }}<wbr v-if="i < parts.length - 1" /></template>
+        </p>
       </div>
       <p class="line-clamp-4 text-[14px] leading-relaxed text-ink-2">{{ excerpt }}</p>
     </div>
@@ -38,3 +39,19 @@ const match = computed(() => (props.score <= 1 ? props.score : props.score / 100
     </div>
   </article>
 </template>
+
+<style scoped>
+/* Perforation notches where the stub tears off, in the colour of what sits behind. */
+.source-pass::before,
+.source-pass::after {
+  content: '';
+  position: absolute;
+  right: calc(7rem - 6px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--notch, var(--dm-ground));
+}
+.source-pass::before { top: -6px; }
+.source-pass::after { bottom: -6px; }
+</style>

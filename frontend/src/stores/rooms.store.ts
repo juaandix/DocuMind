@@ -11,6 +11,8 @@ export const useRoomsStore = defineStore('rooms', () => {
   const connectedUsers = ref<ConnectedUser[]>([])
   const isAiTyping = ref(false)
   const aiStreamBuffer = ref('')
+  // Set when the assistant fails to answer; the raw server message is not shown.
+  const aiError = ref(false)
 
   let ws: WebSocket | null = null
 
@@ -93,10 +95,18 @@ export const useRoomsStore = defineStore('rooms', () => {
         aiStreamBuffer.value = ''
         break
       }
+      case 'error':
+        if (payload.code === 'AI_ERROR') {
+          isAiTyping.value = false
+          aiStreamBuffer.value = ''
+          aiError.value = true
+        }
+        break
     }
   }
 
   function sendMessage(content: string) {
+    aiError.value = false
     ws?.send(JSON.stringify({ type: 'user_message', content }))
   }
 
@@ -117,7 +127,7 @@ export const useRoomsStore = defineStore('rooms', () => {
   }
 
   return {
-    rooms, activeRoom, messages, connectedUsers, isAiTyping, aiStreamBuffer,
+    rooms, activeRoom, messages, connectedUsers, isAiTyping, aiStreamBuffer, aiError,
     fetchRooms, createRoom, fetchMessages, loadMoreMessages,
     connectWebSocket, sendMessage, sendTypingStart, sendTypingStop, disconnect,
   }

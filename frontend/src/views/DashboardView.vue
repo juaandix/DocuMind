@@ -147,8 +147,9 @@ const onboarding = [
             </p>
             <TransitionGroup v-else tag="ul" name="rerank">
               <li v-for="doc in departures" :key="doc.id"
-                :class="['grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 border-t border-rail-2 px-4 py-2.5 transition-colors duration-300 first:border-t-0',
-                  docsStore.changedIds.has(doc.id) ? 'bg-alert text-on-alert' : '']">
+                :class="['relative grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 border-t border-rail-2 px-4 py-2.5 transition-colors duration-300 first:border-t-0',
+                  // Opaque rows; the promoted row travels above the others so text never crosses text.
+                  docsStore.changedIds.has(doc.id) ? 'z-10 bg-alert text-on-alert' : 'z-0 bg-rail']">
                 <router-link :to="`/documents/${doc.id}`" class="truncate text-[14px] font-semibold hover:underline"
                   :class="docsStore.changedIds.has(doc.id) ? 'text-on-alert' : 'text-white'"
                   @click="docsStore.acknowledge(doc.id)">{{ doc.original_name }}</router-link>

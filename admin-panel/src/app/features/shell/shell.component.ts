@@ -51,19 +51,19 @@ const NAV_ITEMS = [
       background: var(--dm-alert); color: var(--dm-on-alert); font: 700 21px/1 var(--font-display); }
     .notch { position: absolute; top: 50%; right: -3px; width: 6px; height: 6px; border-radius: 50%; background: var(--dm-rail); transform: translateY(-50%); }
     .brand-text { display: flex; flex-direction: column; }
-    .wordmark { font: 700 21px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; }
-    .scope { margin-top: 5px; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-alert); }
+    .wordmark { font: 700 21px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--dm-on-ink); }
+    .scope { margin-top: 5px; font: 600 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-rail-ink-2); }
     .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; }
     .nav-item { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-radius: 5px;
       color: var(--dm-rail-ink-2); text-decoration: none; font-size: 14px; font-weight: 500;
       transition: background-color 140ms ease, color 140ms ease; }
-    .nav-item:hover { background: var(--dm-rail-2); color: #fff; }
-    .nav-item.active { background: var(--dm-rail-2); color: #fff; font-weight: 600; }
+    .nav-item:hover { background: var(--dm-rail-2); color: var(--dm-on-ink); }
+    .nav-item.active { background: var(--dm-rail-2); color: var(--dm-on-ink); font-weight: 600; }
     .nav-icon { font-size: 19px; width: 19px; height: 19px; }
     .nav-item.active .nav-icon { color: var(--dm-alert); }
     .signout { display: flex; align-items: center; gap: 10px; margin: 12px; padding: 10px 12px; border: 0; border-top: 1px solid var(--dm-rail-2);
       background: transparent; color: var(--dm-rail-ink-2); font: 500 14px var(--font-sans); cursor: pointer; border-radius: 0; }
-    .signout:hover { color: #fff; }
+    .signout:hover { color: var(--dm-on-ink); }
     .signout mat-icon { font-size: 18px; width: 18px; height: 18px; }
     .content { background: var(--dm-ground); }
   `],

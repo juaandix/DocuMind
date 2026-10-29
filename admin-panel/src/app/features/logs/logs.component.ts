@@ -18,12 +18,11 @@ type StatusFilter = 'ALL' | 'FAILURE' | 'PENDING' | 'STARTED' | 'SUCCESS'
     <div class="page">
       <div class="page-header">
         <div><h1 class="page-title">Celery Job Logs</h1><p class="page-sub">Background jobs: document processing and PDF exports.</p></div>
-        <mat-button-toggle-group [(ngModel)]="statusFilter" (ngModelChange)="applyFilter()" class="toggle-group">
-          <mat-button-toggle value="ALL">All</mat-button-toggle>
-          <mat-button-toggle value="FAILURE">Failed</mat-button-toggle>
-          <mat-button-toggle value="PENDING">Pending</mat-button-toggle>
-          <mat-button-toggle value="STARTED">Running</mat-button-toggle>
-          <mat-button-toggle value="SUCCESS">Done</mat-button-toggle>
+        <mat-button-toggle-group [(ngModel)]="statusFilter" (ngModelChange)="applyFilter()" class="toggle-group"
+          hideSingleSelectionIndicator aria-label="Filter jobs by status">
+          <mat-button-toggle *ngFor="let f of filters" [value]="f.value">
+            {{ f.label }} <span class="count">{{ count(f.value) }}</span>
+          </mat-button-toggle>
         </mat-button-toggle-group>
       </div>
 
@@ -74,7 +73,10 @@ type StatusFilter = 'ALL' | 'FAILURE' | 'PENDING' | 'STARTED' | 'SUCCESS'
     </div>
   `,
   styles: [`
-    .toggle-group { font-size: 13px; }
+    .toggle-group { font-size: 13px; border-color: var(--dm-line) !important; border-radius: 5px !important; background: var(--dm-surface); }
+    .count { margin-left: 6px; font: 600 12px var(--font-mono); opacity: .7; }
+    :host ::ng-deep .toggle-group .mat-button-toggle-checked { background: var(--dm-primary) !important; color: var(--dm-on-primary) !important; }
+    :host ::ng-deep .toggle-group .mat-button-toggle-label-content { font-weight: 600; padding: 0 14px; }
     .empty-state { text-align: center; color: var(--dm-ink-2); padding: 48px; font-size: 14px; border: 1px dashed var(--dm-line); border-radius: 6px; background: var(--dm-surface); }
     .table-box { overflow-x: auto; }
 
@@ -92,6 +94,17 @@ export class LogsComponent implements OnInit {
   jobs: CeleryJob[] = []
   filtered: CeleryJob[] = []
   statusFilter: StatusFilter = 'ALL'
+  filters: { value: StatusFilter; label: string }[] = [
+    { value: 'ALL', label: 'All' },
+    { value: 'FAILURE', label: 'Failed' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'STARTED', label: 'Running' },
+    { value: 'SUCCESS', label: 'Done' },
+  ]
+
+  count(status: StatusFilter) {
+    return status === 'ALL' ? this.jobs.length : this.jobs.filter(j => j.status === status).length
+  }
   loading = false
 
   constructor(private http: HttpClient) {}

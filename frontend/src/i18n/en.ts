@@ -33,7 +33,6 @@ export default {
     PROCESSING: 'Processing',
     READY: 'Ready',
     ERROR: 'Error',
-    now: 'Now',
     nowReady: 'Now ready',
     nowFailed: 'Now failed',
   },
@@ -212,6 +211,7 @@ export default {
     noneAttached: 'None attached',
     noneReady: 'No ready documents',
     justYou: 'Just you',
+    aiError: 'DocuMind could not answer this time. Try again in a moment; if it keeps failing, check the AI provider settings.',
   },
   settings: {
     title: 'Settings',

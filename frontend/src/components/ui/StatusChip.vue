@@ -18,6 +18,7 @@ const classes = computed(() => {
 
 <template>
   <span :class="['inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap', classes]">
-    <span v-if="changed">{{ $t('status.now') }}</span>{{ $t(`status.${status}`) }}
+    <template v-if="changed">{{ status === 'ERROR' ? $t('status.nowFailed') : status === 'READY' ? $t('status.nowReady') : $t(`status.${status}`) }}</template>
+    <template v-else>{{ $t(`status.${status}`) }}</template>
   </span>
 </template>

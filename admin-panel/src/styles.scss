@@ -18,7 +18,11 @@
   --dm-rail-ink: #e6e8eb;
   --dm-rail-ink-2: #9aa0a8;
   --dm-primary: #0b0d10;
+  --dm-primary-hover: #1c2127;
   --dm-on-primary: #ffffff;
+  /* Text and danger on always-dark surfaces (rail, band), in both themes. */
+  --dm-on-ink: #ffffff;
+  --dm-danger-on-ink: #ff6b5e;
   --dm-alert: #ffd400;
   --dm-on-alert: #0b0d10;
   --dm-alert-soft: #fff4bf;
@@ -26,6 +30,7 @@
   --dm-danger-soft: #fdecea;
   --dm-focus: #0b0d10;
   --dm-shadow: 0 0 0 1px rgb(11 13 16 / 0.09), 0 1px 2px rgb(11 13 16 / 0.05);
+  --dm-shadow-raised: 0 0 0 1px rgb(11 13 16 / 0.09), 0 12px 32px -12px rgb(11 13 16 / 0.28);
   --dm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --font-sans: 'Red Hat Text Variable', system-ui, sans-serif;
   --font-mono: 'Red Hat Mono Variable', ui-monospace, monospace;
@@ -45,12 +50,14 @@
     --dm-line-strong: #f2f3f5;
     --dm-rail: #101317;
     --dm-primary: #f2f3f5;
+    --dm-primary-hover: #ffffff;
     --dm-on-primary: #0b0d10;
     --dm-alert-soft: #2e2a0c;
     --dm-danger: #ff6b5e;
     --dm-danger-soft: #3a1614;
     --dm-focus: #ffd400;
     --dm-shadow: 0 0 0 1px rgb(255 255 255 / 0.07), 0 1px 2px rgb(0 0 0 / 0.4);
+    --dm-shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 36px -12px rgb(0 0 0 / 0.8);
     color-scheme: dark;
   }
 }
