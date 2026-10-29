@@ -92,7 +92,7 @@ class AIService:
         context_chunks: list[dict],
         history: list[dict],
     ) -> AsyncGenerator[str, None]:
-        from langchain.schema import AIMessage, HumanMessage, SystemMessage
+        from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
         context = "\n\n---\n\n".join(
             f"[Source: {c['metadata'].get('source', 'unknown')}, "

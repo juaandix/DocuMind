@@ -46,6 +46,15 @@ services:
     ports:
       - "8000:8000"
     env_file: ./backend/.env
+    # backend/.env targets localhost for start-dev.sh; inside compose use service names.
+    environment: &docker-urls
+      MONGODB_URL: mongodb://mongodb:27017
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      S3_ENDPOINT_URL: http://minio:9000
+      # Backend and worker are separate containers: share files through MinIO, not /tmp.
+      STORAGE_PROVIDER: minio
     depends_on:
       mongodb:
         condition: service_healthy
@@ -57,7 +66,8 @@ services:
       - ./backend:/app
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/"]
+      # python:3.12-slim ships without curl
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -66,6 +76,7 @@ services:
   worker:
     build: ./backend
     env_file: ./backend/.env
+    environment: *docker-urls
     depends_on:
       mongodb:
         condition: service_healthy
@@ -82,6 +93,9 @@ services:
     ports:
       - "3001:3001"
     env_file: ./notification-service/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://mongodb:27017/documind
     depends_on:
       mongodb:
         condition: service_healthy
@@ -92,7 +106,8 @@ services:
       - /app/node_modules
     command: node src/index.js
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      # node image ships without curl
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 5

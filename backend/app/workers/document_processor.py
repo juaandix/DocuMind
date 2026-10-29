@@ -1,18 +1,17 @@
-import asyncio
 import io
 import logging
 from datetime import UTC, datetime
 
 from bson import ObjectId
 
-from app.workers.celery_app import celery_app
+from app.workers.celery_app import celery_app, run_async
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, max_retries=3)
 def process_document(self, document_id: str, workspace_id: str):
-    asyncio.run(_process_document_async(document_id, workspace_id))
+    run_async(_process_document_async(document_id, workspace_id))
 
 
 async def _process_document_async(document_id: str, workspace_id: str):
@@ -151,7 +150,7 @@ async def _process_document_async(document_id: str, workspace_id: str):
 
 
 def _extract_text(file_bytes: bytes, mime_type: str, filename: str) -> list[dict]:
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=80)
 

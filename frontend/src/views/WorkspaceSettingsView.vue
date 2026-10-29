@@ -2,9 +2,17 @@
 import { onMounted, ref, computed } from 'vue'
 import { useWorkspaceStore } from '@/stores/workspace.store'
 import { useAuthStore } from '@/stores/auth.store'
+import { Check, Loader } from 'lucide-vue-next'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import SettingsTabs from '@/components/ui/SettingsTabs.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import { formatDate } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
 
 const wsStore = useWorkspaceStore()
 const auth = useAuthStore()
+const { t } = useI18n()
 const name = ref('')
 const saving = ref(false)
 const saved = ref(false)
@@ -36,67 +44,56 @@ async function save() {
     saved.value = true
     setTimeout(() => { saved.value = false }, 2500)
   } catch (e: unknown) {
-    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to save'
+    error.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t('workspace.saveFailed')
   } finally { saving.value = false }
 }
 </script>
 
 <template>
-  <div class="p-8 max-w-lg">
-    <h1 class="text-2xl font-semibold text-[#1d1d1f] mb-6">Workspace</h1>
+  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <PageHeader :title="$t('settings.title')" />
+    <SettingsTabs />
 
-    <div v-if="!wsStore.workspace" class="flex justify-center py-20">
-      <div class="w-6 h-6 border-2 border-[#0071e3]/30 border-t-[#0071e3] rounded-full animate-spin"></div>
-    </div>
+    <div v-if="!wsStore.workspace" class="flex items-center gap-3 py-16 text-ink-2"><Loader class="size-5 animate-spin" />{{ $t('workspace.loading') }}</div>
 
     <template v-else>
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 space-y-4 mb-4">
-        <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">General</h2>
+      <form class="flex flex-col gap-5 rounded-pass bg-surface p-5 shadow-pass" @submit.prevent="save">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-[15px] font-semibold text-ink">{{ $t('workspace.heading') }}</h2>
+            <p class="text-[13px] text-ink-2">{{ $t('workspace.sub') }}</p>
+          </div>
+          <span :class="['rounded-[4px] px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em]',
+            wsStore.workspace.plan === 'PRO' ? 'bg-alert text-on-alert' : 'border border-line-strong text-ink']">{{ $t('workspace.plan', { plan: wsStore.workspace.plan }) }}</span>
+        </div>
+        <UiInput v-model="name" :label="$t('workspace.name')" :hint="canEdit ? undefined : $t('workspace.readOnly')" :error="error || undefined" />
+        <dl class="grid grid-cols-2 gap-4">
+          <div><dt class="label">{{ $t('workspace.slug') }}</dt><dd class="mt-1 font-mono text-[14px] text-ink">{{ wsStore.workspace.slug }}</dd></div>
+          <div><dt class="label">{{ $t('workspace.created') }}</dt><dd class="mt-1 font-mono text-[14px] text-ink">{{ formatDate(wsStore.workspace.created_at) }}</dd></div>
+        </dl>
+        <div v-if="canEdit" class="flex items-center gap-3">
+          <UiButton type="submit" :disabled="saving || !name.trim()">{{ saving ? $t('common.saving') : $t('common.saveChanges') }}</UiButton>
+          <span v-if="saved" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink" role="status"><Check class="size-4" />{{ $t('common.saved') }}</span>
+        </div>
+      </form>
 
-        <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Workspace Name</label>
-          <input v-model="name" type="text" :disabled="!canEdit"
-            class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] disabled:opacity-40 disabled:cursor-not-allowed"
-          />
+      <section class="grid rounded-pass bg-surface shadow-pass sm:grid-cols-[1fr_160px]" aria-labelledby="storage-title">
+        <div class="flex flex-col gap-3 p-5">
+          <h2 id="storage-title" class="text-[15px] font-semibold text-ink">{{ $t('workspace.storage') }}</h2>
+          <div class="h-2 overflow-hidden rounded-full bg-line" role="progressbar" :aria-valuenow="storagePercent" aria-valuemin="0" aria-valuemax="100" :aria-label="$t('workspace.storageUsed')">
+            <div :class="['h-full rounded-full', storagePercent > 85 ? 'bg-alert' : 'bg-primary']" :style="{ width: storagePercent + '%' }" />
+          </div>
+          <p class="flex justify-between font-mono text-[13px] text-ink-2">
+            <span>{{ $t('workspace.used', { size: formatBytes(wsStore.workspace.storage_used_bytes) }) }}</span>
+            <span>{{ $t('workspace.total', { size: formatBytes(wsStore.workspace.storage_limit_bytes) }) }}</span>
+          </p>
+          <p v-if="storagePercent > 85" class="text-[13px] font-semibold text-ink">{{ $t('workspace.almostFull') }}</p>
         </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Plan</label>
-          <span :class="[
-            'inline-block text-xs font-medium px-2.5 py-1 rounded-full',
-            wsStore.workspace.plan === 'PRO'
-              ? 'bg-[#af52de]/[0.1] text-[#7a2e9c]'
-              : 'bg-black/[0.04] text-[#6e6e73]'
-          ]">{{ wsStore.workspace.plan }}</span>
+        <div class="flex flex-col justify-center border-dashed border-line px-5 py-4 max-sm:border-t sm:border-l">
+          <p class="label">{{ $t('workspace.usedLabel') }}</p>
+          <p class="font-display text-[44px] font-semibold leading-none text-ink">{{ storagePercent }}<span class="text-[24px]">%</span></p>
         </div>
-
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-
-        <div v-if="canEdit" class="flex items-center gap-3 pt-1">
-          <button @click="save" :disabled="saving"
-            class="bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-            {{ saving ? 'Saving…' : 'Save Changes' }}
-          </button>
-          <span v-if="saved" class="text-sm text-[#34c759] font-medium">✓ Saved</span>
-        </div>
-      </div>
-
-      <!-- Storage -->
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">Storage</h2>
-          <span :class="['text-xs font-medium', storagePercent > 85 ? 'text-red-500' : 'text-[#6e6e73]']">{{ storagePercent }}%</span>
-        </div>
-        <div class="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
-          <div :class="['h-full rounded-full transition-all', storagePercent > 85 ? 'bg-red-500' : 'bg-[#0071e3]']"
-            :style="{ width: `${storagePercent}%` }"></div>
-        </div>
-        <div class="flex justify-between text-xs text-[#6e6e73]">
-          <span>{{ formatBytes(wsStore.workspace.storage_used_bytes) }} used</span>
-          <span v-if="storagePercent > 85" class="text-red-500 font-medium">Almost full</span>
-          <span v-else>{{ formatBytes(wsStore.workspace.storage_limit_bytes) }} total</span>
-        </div>
-      </div>
+      </section>
     </template>
   </div>
 </template>

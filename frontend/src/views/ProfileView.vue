@@ -2,8 +2,16 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
+import { Check } from 'lucide-vue-next'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import SettingsTabs from '@/components/ui/SettingsTabs.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiAvatar from '@/components/ui/UiAvatar.vue'
+import { useI18n } from 'vue-i18n'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 const fullName = ref('')
 const saving = ref(false)
@@ -27,14 +35,14 @@ async function saveName() {
     auth.user = data; saved.value = true
     setTimeout(() => { saved.value = false }, 2500)
   } catch (e: unknown) {
-    nameError.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to save'
+    nameError.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t('profile.saveFailed')
   } finally { saving.value = false }
 }
 
 async function savePassword() {
   pwError.value = ''
-  if (newPassword.value.length < 8) { pwError.value = 'New password must be at least 8 characters'; return }
-  if (newPassword.value !== confirmPassword.value) { pwError.value = 'Passwords do not match'; return }
+  if (newPassword.value.length < 8) { pwError.value = t('profile.tooShort'); return }
+  if (newPassword.value !== confirmPassword.value) { pwError.value = t('profile.mismatch'); return }
   changingPw.value = true; pwSaved.value = false
   try {
     await api.post('/api/v1/auth/me/password', {
@@ -45,90 +53,54 @@ async function savePassword() {
     currentPassword.value = ''; newPassword.value = ''; confirmPassword.value = ''
     setTimeout(() => { pwSaved.value = false }, 2500)
   } catch (e: unknown) {
-    pwError.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to change password'
+    pwError.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t('profile.failed')
   } finally { changingPw.value = false }
 }
 
-const initials = () => (auth.user?.full_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 </script>
 
 <template>
-  <div class="p-8 max-w-lg space-y-5">
-    <h1 class="text-2xl font-semibold text-[#1d1d1f]">Profile</h1>
+  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <PageHeader :title="$t('settings.title')" />
+    <SettingsTabs />
 
-    <!-- Identity -->
-    <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6 space-y-5">
-      <div class="flex items-center gap-4 pb-5 border-b border-black/[0.06]">
-        <div class="w-14 h-14 rounded-full bg-[#0071e3] flex items-center justify-center text-xl font-semibold text-white shadow-[0_4px_12px_rgba(0,113,227,0.3)]">
-          {{ initials() }}
+    <form class="flex flex-col gap-5 rounded-pass bg-surface p-5 shadow-pass" @submit.prevent="saveName">
+      <div class="flex items-center gap-4">
+        <UiAvatar :name="auth.user?.full_name ?? '?'" class="!size-12 !text-[15px]" />
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[16px] font-semibold text-ink">{{ auth.user?.full_name }}</p>
+          <p class="truncate text-[13px] text-ink-2">{{ auth.user?.email }}</p>
         </div>
-        <div>
-          <p class="font-semibold text-[#1d1d1f]">{{ auth.user?.full_name }}</p>
-          <p class="text-sm text-[#6e6e73]">{{ auth.user?.email }}</p>
-          <span class="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#0071e3]/[0.08] text-[#0071e3]">
-            {{ auth.user?.role }}
-          </span>
+        <span class="rounded-[4px] border border-line-strong px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{{ auth.user?.role ? $t(`roles.${auth.user.role}`) : '' }}</span>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <UiInput v-model="fullName" :label="$t('common.fullName')" autocomplete="name" :error="nameError || undefined" />
+        <div class="flex flex-col gap-1.5">
+          <span class="label">{{ $t('common.email') }}</span>
+          <p class="flex min-h-11 items-center rounded-[5px] border border-line bg-sunken px-3.5 text-[15px] text-ink-2">{{ auth.user?.email }}</p>
         </div>
       </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Full Name</label>
-          <input v-model="fullName" type="text"
-            class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-          />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Email</label>
-          <input :value="auth.user?.email" type="email" disabled
-            class="w-full rounded-lg border border-black/[0.06] bg-black/[0.02] px-3.5 py-2.5 text-sm text-[#6e6e73] cursor-not-allowed"
-          />
-        </div>
+      <div class="flex items-center gap-3">
+        <UiButton type="submit" :disabled="saving || !fullName.trim()">{{ saving ? $t('common.saving') : $t('common.saveChanges') }}</UiButton>
+        <span v-if="saved" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink" role="status"><Check class="size-4" />{{ $t('common.saved') }}</span>
       </div>
+    </form>
 
-      <p v-if="nameError" class="text-sm text-red-600">{{ nameError }}</p>
-
-      <div class="flex items-center gap-3 pt-1">
-        <button @click="saveName" :disabled="saving || !fullName.trim()"
-          class="bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors">
-          {{ saving ? 'Saving…' : 'Save Changes' }}
-        </button>
-        <span v-if="saved" class="text-sm text-[#34c759] font-medium">✓ Saved</span>
-      </div>
-    </div>
-
-    <!-- Change password -->
-    <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6 space-y-4">
-      <h2 class="text-sm font-semibold text-[#1d1d1f]">Change Password</h2>
-
+    <form class="flex flex-col gap-5 rounded-pass bg-surface p-5 shadow-pass" @submit.prevent="savePassword">
       <div>
-        <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Current Password</label>
-        <input v-model="currentPassword" type="password" autocomplete="current-password"
-          class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-        />
+        <h2 class="text-[15px] font-semibold text-ink">{{ $t('profile.passwordTitle') }}</h2>
+        <p class="text-[13px] text-ink-2">{{ $t('profile.passwordSub') }}</p>
       </div>
-      <div>
-        <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">New Password</label>
-        <input v-model="newPassword" type="password" autocomplete="new-password"
-          class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-        />
+      <UiInput v-model="currentPassword" :label="$t('profile.current')" type="password" autocomplete="current-password" />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <UiInput v-model="newPassword" :label="$t('profile.new')" type="password" autocomplete="new-password" />
+        <UiInput v-model="confirmPassword" :label="$t('profile.confirm')" type="password" autocomplete="new-password" />
       </div>
-      <div>
-        <label class="block text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-1.5">Confirm New Password</label>
-        <input v-model="confirmPassword" type="password" autocomplete="new-password"
-          class="w-full rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3.5 py-2.5 text-sm text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-        />
+      <p v-if="pwError" class="rounded-[5px] border border-danger bg-danger-soft px-3 py-2 text-[13px] text-danger" role="alert">{{ pwError }}</p>
+      <div class="flex items-center gap-3">
+        <UiButton type="submit" variant="secondary" :disabled="changingPw || !currentPassword || !newPassword">{{ changingPw ? $t('profile.updating') : $t('profile.update') }}</UiButton>
+        <span v-if="pwSaved" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink" role="status"><Check class="size-4" />{{ $t('profile.updated') }}</span>
       </div>
-
-      <p v-if="pwError" class="text-sm text-red-600">{{ pwError }}</p>
-
-      <div class="flex items-center gap-3 pt-1">
-        <button @click="savePassword" :disabled="changingPw || !currentPassword || !newPassword || !confirmPassword"
-          class="bg-[#1d1d1f] hover:bg-black disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition-colors">
-          {{ changingPw ? 'Updating…' : 'Update Password' }}
-        </button>
-        <span v-if="pwSaved" class="text-sm text-[#34c759] font-medium">✓ Password updated</span>
-      </div>
-    </div>
+    </form>
   </div>
 </template>

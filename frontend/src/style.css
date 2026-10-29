@@ -1,20 +1,202 @@
 @import "tailwindcss";
+@import "@fontsource-variable/red-hat-text";
+@import "@fontsource-variable/red-hat-mono";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Raw values switch with the theme; Tailwind utilities read
+ * them through @theme inline (bg-surface, text-ink, border-line, …).
+ */
+:root {
+  --dm-ground: #edeff2;
+  --dm-surface: #ffffff;
+  --dm-sunken: #f2f3f5;
+  --dm-ink: #0b0d10;
+  --dm-ink-2: #474c55;
+  --dm-ink-3: #60656d;
+  --dm-line: #d5d8dd;
+  --dm-line-strong: #0b0d10;
+
+  --dm-rail: #0b0d10;
+  --dm-rail-2: #1c2127;
+  --dm-rail-ink: #e6e8eb;
+  --dm-rail-ink-2: #9aa0a8;
+
+  --dm-primary: #0b0d10;
+  --dm-primary-hover: #1c2127;
+  --dm-on-primary: #ffffff;
+
+  --dm-alert: #ffd400;
+  --dm-on-alert: #0b0d10;
+  --dm-alert-soft: #fff4bf;
+
+  --dm-danger: #c4231c;
+  --dm-danger-soft: #fdecea;
+
+  --dm-focus: #0b0d10;
+  /* Panels are drawn by a hairline, lifted only slightly. */
+  --dm-shadow: 0 0 0 1px rgb(11 13 16 / 0.09), 0 1px 2px rgb(11 13 16 / 0.05);
+  --dm-shadow-raised: 0 0 0 1px rgb(11 13 16 / 0.09), 0 12px 32px -12px rgb(11 13 16 / 0.28);
+  color-scheme: light;
+}
+
+.dark {
+  --dm-ground: #0b0d10;
+  --dm-surface: #15181d;
+  --dm-sunken: #101317;
+  --dm-ink: #f2f3f5;
+  --dm-ink-2: #b4b9c1;
+  --dm-ink-3: #8d939c;
+  --dm-line: #2a2f37;
+  --dm-line-strong: #f2f3f5;
+
+  --dm-rail: #101317;
+  --dm-rail-2: #1c2127;
+  --dm-rail-ink: #e6e8eb;
+  --dm-rail-ink-2: #9aa0a8;
+
+  --dm-primary: #f2f3f5;
+  --dm-primary-hover: #ffffff;
+  --dm-on-primary: #0b0d10;
+
+  --dm-alert-soft: #2e2a0c;
+
+  --dm-danger: #ff6b5e;
+  --dm-danger-soft: #3a1614;
+
+  --dm-focus: #ffd400;
+  --dm-shadow: 0 0 0 1px rgb(255 255 255 / 0.07), 0 1px 2px rgb(0 0 0 / 0.4);
+  --dm-shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 36px -12px rgb(0 0 0 / 0.8);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Red Hat Text Variable', system-ui, sans-serif;
+  --font-mono: 'Red Hat Mono Variable', ui-monospace, monospace;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+
+  --color-ground: var(--dm-ground);
+  --color-surface: var(--dm-surface);
+  --color-sunken: var(--dm-sunken);
+  --color-ink: var(--dm-ink);
+  --color-ink-2: var(--dm-ink-2);
+  --color-ink-3: var(--dm-ink-3);
+  --color-line: var(--dm-line);
+  --color-line-strong: var(--dm-line-strong);
+  --color-rail: var(--dm-rail);
+  --color-rail-2: var(--dm-rail-2);
+  --color-rail-ink: var(--dm-rail-ink);
+  --color-rail-ink-2: var(--dm-rail-ink-2);
+  --color-primary: var(--dm-primary);
+  --color-primary-hover: var(--dm-primary-hover);
+  --color-on-primary: var(--dm-on-primary);
+  --color-alert: var(--dm-alert);
+  --color-on-alert: var(--dm-on-alert);
+  --color-alert-soft: var(--dm-alert-soft);
+  --color-danger: var(--dm-danger);
+  --color-danger-soft: var(--dm-danger-soft);
+  /* Danger on always-dark surfaces (the dashboard band), in both themes. */
+  --color-danger-on-ink: #ff6b5e;
+
+  /* Motion: strong custom curves (override Tailwind's weak defaults). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shadow-pass: var(--dm-shadow);
+  --shadow-raised: var(--dm-shadow-raised);
+  --radius-pass: 6px;
+}
 
 @layer base {
   html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: var(--font-sans);
+    background: var(--dm-ground);
+    color: var(--dm-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    caret-color: var(--dm-ink);
+    scrollbar-color: var(--dm-ink-3) transparent;
+  }
+
+  ::selection {
+    background: var(--dm-alert);
+    color: var(--dm-on-alert);
   }
 
   button, a, input, textarea, select {
     transition-property: background-color, border-color, color, box-shadow, opacity;
-    transition-duration: 150ms;
-    transition-timing-function: ease;
+    transition-duration: 140ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  a {
+    text-underline-offset: 3px;
   }
 
   *:focus-visible {
-    outline: 2px solid #0071e3;
+    outline: 2px solid var(--dm-focus);
     outline-offset: 2px;
   }
+
+  table, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Uppercase tracked mono: the pass's segment labels and board headers. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dm-ink-3);
+  }
+}
+
+@layer components {
+  /* Press feedback for anything pressable: the UI heard you. */
+  .press {
+    transition: transform 160ms var(--ease-out), background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+  .press:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* Popover menus: scale from their trigger, leave faster than they enter. */
+.menu-enter-active { transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out); }
+.menu-leave-active { transition: opacity 100ms ease, transform 100ms ease; }
+.menu-enter-from, .menu-leave-to { opacity: 0; transform: scale(0.97) translateY(-4px); }
+
+/* Drawers: backdrop fades, panel slides on an iOS-like curve; exit is quicker. */
+.drawer-enter-active, .drawer-leave-active { transition: opacity 300ms ease; }
+.drawer-leave-active { transition-duration: 200ms; }
+.drawer-enter-from, .drawer-leave-to { opacity: 0; }
+.drawer-enter-active .drawer-panel { transition: transform 300ms var(--ease-drawer); }
+.drawer-leave-active .drawer-panel { transition: transform 200ms var(--ease-out); }
+.drawer-enter-from .drawer-panel, .drawer-leave-to .drawer-panel { transform: translateX(100%); }
+
+/* The departures board: a row reranks in place, a new row drops in. */
+.rerank-move { transition: transform 400ms var(--ease-in-out); }
+.rerank-enter-active { transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out); }
+.rerank-enter-from { opacity: 0; transform: translateY(-6px); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Fewer and gentler, not none: keep fades and colour, drop travel. */
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .press:active:not(:disabled) { transform: none; }
+  .menu-enter-from, .menu-leave-to,
+  .drawer-enter-from .drawer-panel, .drawer-leave-to .drawer-panel,
+  .rerank-enter-from { transform: none; }
+  .rerank-move { transition: none; }
 }

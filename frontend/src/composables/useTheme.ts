@@ -1,29 +1,28 @@
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 type Theme = 'light' | 'dark'
 
-const theme = ref<Theme>('light')
+// index.html applies the saved/system theme before first paint; start from it.
+const theme = ref<Theme>(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
 
-function applyTheme(t: Theme) {
+function applyTheme(t: Theme, persist: boolean) {
   document.documentElement.classList.toggle('dark', t === 'dark')
-  localStorage.setItem('theme', t)
+  if (persist) {
+    try { localStorage.setItem('theme', t) } catch { /* storage unavailable */ }
+  }
   theme.value = t
 }
 
+const media = window.matchMedia('(prefers-color-scheme: dark)')
+media.addEventListener('change', (e) => {
+  let saved: string | null = null
+  try { saved = localStorage.getItem('theme') } catch { /* storage unavailable */ }
+  if (!saved) applyTheme(e.matches ? 'dark' : 'light', false)
+})
+
 export function useTheme() {
-  onMounted(() => {
-    const saved = localStorage.getItem('theme') as Theme | null
-    const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    applyTheme(saved ?? (sysDark ? 'dark' : 'light'))
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light')
-    })
-  })
-
   function toggle() {
-    applyTheme(theme.value === 'dark' ? 'light' : 'dark')
+    applyTheme(theme.value === 'dark' ? 'light' : 'dark', true)
   }
-
   return { theme, toggle }
 }

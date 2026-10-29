@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { ArrowLeft, Pencil, Download, PanelRight, X, ArrowUp, Check } from 'lucide-vue-next'
+import UiButton from '@/components/ui/UiButton.vue'
+import StatusChip from '@/components/ui/StatusChip.vue'
+import SourcePass from '@/components/ui/SourcePass.vue'
+import UiAvatar from '@/components/ui/UiAvatar.vue'
+import { formatTime } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
 import { useRoomsStore } from '@/stores/rooms.store'
 import { useDocumentsStore } from '@/stores/documents.store'
 import { useAuthStore } from '@/stores/auth.store'
-import type { Message, MessageSource } from '@/types/room'
+import { useWorkspaceStore } from '@/stores/workspace.store'
+import type { Message } from '@/types/room'
 
 const route = useRoute()
 const roomsStore = useRoomsStore()
 const docsStore = useDocumentsStore()
 const authStore = useAuthStore()
+const wsStore = useWorkspaceStore()
+const { t } = useI18n()
 
 const roomId = computed(() => route.params.id as string)
 const inputText = ref('')
 const messagesEl = ref<HTMLElement | null>(null)
 const showInfo = ref(false)
-const expandedSources = ref<Set<string>>(new Set())
+// Which answer's sources the side panel shows, and which pass is highlighted.
+const selectedMsgId = ref<string | null>(null)
+const activeSource = ref<number | null>(null)
 const exporting = ref(false)
 const exportTaskId = ref<string | null>(null)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -54,7 +66,7 @@ const pendingDocIds = ref<string[]>([])
 const savingDocs = ref(false)
 
 onMounted(async () => {
-  await Promise.all([roomsStore.fetchRooms(), docsStore.fetchDocuments(), roomsStore.fetchMessages(roomId.value)])
+  await Promise.all([roomsStore.fetchRooms(), docsStore.fetchDocuments(), roomsStore.fetchMessages(roomId.value), wsStore.fetchMembers().catch(() => {})])
   const found = roomsStore.rooms.find(r => r.id === roomId.value)
   if (found) roomsStore.activeRoom = found
   roomsStore.connectWebSocket(roomId.value)
@@ -86,14 +98,27 @@ function onKeydown(e: KeyboardEvent) {
   typingTimeout.value = setTimeout(() => { roomsStore.sendTypingStop(); typingTimeout.value = null }, 2000)
 }
 
-function toggleSources(msgId: string) {
-  if (expandedSources.value.has(msgId)) expandedSources.value.delete(msgId)
-  else expandedSources.value.add(msgId)
-  expandedSources.value = new Set(expandedSources.value)
+async function showSources(msgId: string, index: number | null = null) {
+  selectedMsgId.value = msgId
+  activeSource.value = index
+  showInfo.value = true
+  await nextTick()
+  document.querySelector(`[data-source="${index}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+
+const sourceMsg = computed(() => {
+  const withSources = roomsStore.messages.filter(m => m.role === 'assistant' && m.sources?.length)
+  return withSources.find(m => m.id === selectedMsgId.value) ?? withSources.at(-1) ?? null
+})
+
+function authorName(msg: Message) {
+  if (isOwnMessage(msg)) return t('common.you')
+  return roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name
+    ?? wsStore.members.find(m => m.id === msg.author_id)?.full_name
+    ?? t('common.member')
 }
 
 function isOwnMessage(msg: Message) { return msg.author_id === authStore.user?.id }
-function formatScore(score: number) { return `${Math.round(score * 100)}%` }
 
 async function handleExport() {
   exporting.value = true
@@ -138,228 +163,201 @@ function renderContent(text: string): string {
   return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code style="background:rgba(0,113,227,0.08);color:#0071e3;padding:2px 5px;border-radius:4px;font-family:ui-monospace,monospace;font-size:0.85em">$1</code>')
+    .replace(/`([^`]+)`/g, '<code class="rounded-[3px] bg-sunken px-1 py-0.5 font-mono text-[0.88em] text-ink">$1</code>')
     .replace(/\n/g, '<br/>')
 }
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-[#f5f5f7]">
-    <!-- Header -->
-    <div class="flex-shrink-0 flex items-center justify-between px-5 h-14 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl">
-      <div class="flex items-center gap-3 min-w-0">
-        <router-link to="/rooms" class="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors flex-shrink-0">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+  <div class="flex h-full flex-col">
+    <!-- Room header: identity segments, like the top of a pass -->
+    <header class="flex shrink-0 flex-wrap items-stretch border-b border-line bg-surface">
+      <div class="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 sm:px-6">
+        <router-link to="/rooms" class="shrink-0 rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" :aria-label="$t('room.back')">
+          <ArrowLeft class="size-5" />
         </router-link>
         <template v-if="editingName">
-          <input
-            v-model="pendingName"
-            @keydown="onRenameKeydown"
-            @blur="saveRename"
-            autofocus
-            class="text-sm font-semibold text-[#1d1d1f] bg-[#f5f5f7] border border-[#0071e3] rounded-lg px-2 py-0.5 focus:outline-none w-48"
-          />
+          <label class="min-w-0 flex-1">
+            <span class="sr-only">{{ $t('room.roomName') }}</span>
+            <input v-model="pendingName" autofocus
+              class="min-h-9 w-full max-w-sm rounded-[5px] border border-line-strong bg-surface px-2.5 text-[17px] font-semibold text-ink focus:ring-2 focus:ring-alert focus:outline-none"
+              @keydown="onRenameKeydown" @blur="saveRename" />
+          </label>
         </template>
         <template v-else>
-          <h1 @dblclick="startRename" class="text-sm font-semibold text-[#1d1d1f] truncate cursor-pointer hover:text-[#0071e3] transition-colors" title="Double-click to rename">
-            {{ room?.name ?? 'Chat' }}
-          </h1>
+          <h1 class="truncate text-[19px] font-semibold tracking-tight text-ink" @dblclick="startRename">{{ room?.name ?? 'Chat' }}</h1>
+          <button class="shrink-0 rounded p-1.5 text-ink-3 hover:bg-sunken hover:text-ink" :aria-label="$t('room.rename')" :title="$t('room.rename')" @click="startRename">
+            <Pencil class="size-3.5" />
+          </button>
         </template>
-        <div v-if="roomsStore.connectedUsers.length > 0" class="flex items-center gap-1.5 flex-shrink-0">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#34c759]"></div>
-          <span class="text-xs text-[#6e6e73]">{{ roomsStore.connectedUsers.length }} online</span>
+      </div>
+
+      <dl class="hidden items-stretch sm:flex">
+        <div class="flex flex-col justify-center border-l border-line px-5">
+          <dt class="label">{{ $t('room.docs') }}</dt>
+          <dd class="font-display text-[22px] font-semibold leading-none text-ink">{{ roomDocs.length }}</dd>
         </div>
-      </div>
+        <div class="flex flex-col justify-center border-l border-line px-5">
+          <dt class="label">{{ $t('room.hereNow') }}</dt>
+          <dd class="font-display text-[22px] font-semibold leading-none text-ink">{{ Math.max(1, roomsStore.connectedUsers.length) }}</dd>
+        </div>
+      </dl>
 
-      <div class="flex items-center gap-2">
-        <span v-if="exportTaskId" class="text-xs font-medium text-[#34c759] bg-[#34c759]/[0.1] px-2.5 py-1 rounded-full">Export queued ✓</span>
-        <button v-else @click="handleExport" :disabled="exporting"
-          class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1d1d1f] bg-[#f5f5f7] hover:bg-gray-200 rounded-lg disabled:opacity-50 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          Export PDF
-        </button>
-        <button @click="showInfo = !showInfo"
-          :class="['p-1.5 rounded-lg transition-colors', showInfo ? 'bg-[#0071e3]/[0.1] text-[#0071e3]' : 'text-[#6e6e73] hover:bg-black/[0.04]']">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
+      <div class="flex items-center gap-2 border-l border-line px-4">
+        <span v-if="exportTaskId" class="inline-flex items-center gap-1.5 rounded-[4px] bg-alert px-2 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-on-alert" role="status">
+          <Check class="size-3.5" />{{ $t('room.exportQueued') }}
+        </span>
+        <UiButton v-else variant="secondary" size="sm" :disabled="exporting" @click="handleExport">
+          <Download class="size-4" /><span class="max-sm:sr-only">{{ $t('room.exportPdf') }}</span>
+        </UiButton>
+        <button :aria-pressed="showInfo" :aria-label="$t('room.togglePanel')"
+          :class="['rounded p-2 xl:hidden', showInfo ? 'bg-primary text-on-primary' : 'text-ink-2 hover:bg-sunken hover:text-ink']"
+          @click="showInfo = !showInfo">
+          <PanelRight class="size-4" />
         </button>
       </div>
-    </div>
+    </header>
 
-    <div class="flex flex-1 overflow-hidden">
-      <!-- Messages -->
-      <div class="flex-1 flex flex-col min-w-0">
+    <div class="relative flex min-h-0 flex-1">
+      <!-- Conversation -->
+      <section class="flex min-w-0 flex-1 flex-col" :aria-label="$t('room.conversation')">
         <div ref="messagesEl" class="flex-1 overflow-y-auto">
-          <!-- Empty state -->
-          <div v-if="roomsStore.messages.length === 0 && !roomsStore.isAiTyping" class="flex flex-col items-center justify-center h-full text-center py-16 px-4">
-            <div class="w-14 h-14 rounded-2xl bg-[#0071e3]/[0.08] flex items-center justify-center mb-4">
-              <svg class="w-7 h-7 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-            </div>
-            <p class="text-base font-semibold text-[#1d1d1f]">Ask anything</p>
-            <p class="text-sm text-[#6e6e73] mt-1">{{ roomDocs.length }} document{{ roomDocs.length !== 1 ? 's' : '' }} ready to answer your questions.</p>
+          <div v-if="roomsStore.messages.length === 0 && !roomsStore.isAiTyping" class="flex h-full flex-col items-center justify-center px-4 py-16 text-center">
+            <p class="font-display text-[44px] font-semibold leading-none text-ink">{{ roomDocs.length }}</p>
+            <p class="label mt-1">{{ $t('room.onBoard', roomDocs.length) }}</p>
+            <p class="mt-4 text-base font-semibold text-ink">{{ $t('room.askTitle') }}</p>
+            <p class="mt-1 max-w-sm text-[14px] text-ink-2">{{ $t('room.askBody') }}</p>
           </div>
 
-          <!-- Message list -->
-          <div class="max-w-3xl mx-auto px-6 py-6 space-y-6">
-            <template v-for="msg in roomsStore.messages" :key="msg.id">
-              <!-- User message -->
-              <div v-if="msg.role === 'user'" class="flex justify-end">
-                <div class="max-w-[78%]">
-                  <div class="bg-[#0071e3] text-white px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed" v-html="renderContent(msg.content)"></div>
-                  <p v-if="!isOwnMessage(msg)" class="text-[10px] text-[#6e6e73] text-right mt-1 px-1">
-                    {{ roomsStore.connectedUsers.find(u => u.id === msg.author_id)?.name ?? 'User' }}
-                  </p>
+          <ol class="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 sm:px-8">
+            <li v-for="msg in roomsStore.messages" :key="msg.id" class="grid grid-cols-[32px_1fr] gap-x-3.5">
+              <UiAvatar :name="authorName(msg)" :ai="msg.role === 'assistant'" class="mt-0.5" />
+              <div class="min-w-0">
+              <p class="mb-1 flex items-baseline gap-2">
+                <span class="text-[14px] font-semibold text-ink">{{ msg.role === 'assistant' ? 'DocuMind' : authorName(msg) }}</span>
+                <span class="font-mono text-[12px] text-ink-3">{{ formatTime(msg.created_at) }}</span>
+              </p>
+              <div v-if="msg.role === 'assistant'">
+                <div class="text-[16px] leading-[1.7] text-ink" v-html="renderContent(msg.content)"></div>
+                <div v-if="msg.sources?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span class="label mr-1">{{ $t('room.sources') }}</span>
+                  <button v-for="(src, i) in msg.sources" :key="i"
+                    :aria-pressed="sourceMsg?.id === msg.id && activeSource === i"
+                    :title="src.document_name"
+                    :class="[
+                      'press min-h-7 rounded-[4px] px-2 font-mono text-[12px] font-semibold',
+                      sourceMsg?.id === msg.id && activeSource === i ? 'bg-alert text-on-alert' : 'bg-primary text-on-primary hover:bg-primary-hover',
+                    ]"
+                    @click="showSources(msg.id, i)">S{{ i + 1 }}</button>
                 </div>
               </div>
-
-              <!-- AI message -->
-              <div v-else-if="msg.role === 'assistant'" class="flex gap-3">
-                <div class="w-8 h-8 rounded-xl bg-[#0071e3] flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[0_2px_8px_rgba(0,113,227,0.35)]">
-                  <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0 pt-1">
-                  <div class="text-sm text-[#1d1d1f] leading-relaxed" v-html="renderContent(msg.content)"></div>
-
-                  <!-- Sources -->
-                  <div v-if="msg.sources?.length > 0" class="mt-3">
-                    <button @click="toggleSources(msg.id)"
-                      class="flex items-center gap-1.5 text-xs font-medium text-[#0071e3] hover:underline">
-                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                      </svg>
-                      {{ msg.sources.length }} source{{ msg.sources.length > 1 ? 's' : '' }}
-                      <svg :class="['w-3 h-3 transition-transform', expandedSources.has(msg.id) ? 'rotate-180' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                      </svg>
-                    </button>
-
-                    <div v-if="expandedSources.has(msg.id)" class="mt-2 space-y-2">
-                      <div v-for="(src, i) in (msg.sources as MessageSource[])" :key="i"
-                        class="bg-white rounded-xl border border-black/[0.06] p-3 text-xs shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-                        <div class="flex items-center justify-between mb-1.5">
-                          <span class="font-medium text-[#1d1d1f] truncate text-xs">{{ src.document_name }}</span>
-                          <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                            <span v-if="src.page" class="text-[#6e6e73]">p.{{ src.page }}</span>
-                            <span class="bg-[#0071e3]/[0.08] text-[#0071e3] px-1.5 py-0.5 rounded-full text-[10px] font-medium">{{ formatScore(src.score) }}</span>
-                          </div>
-                        </div>
-                        <p class="text-[#6e6e73] leading-relaxed line-clamp-3">{{ src.chunk_content }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div v-else class="text-[16px] leading-[1.65] text-ink" v-html="renderContent(msg.content)"></div>
               </div>
-            </template>
+            </li>
 
-            <!-- AI typing -->
-            <div v-if="roomsStore.isAiTyping" class="flex gap-3">
-              <div class="w-8 h-8 rounded-xl bg-[#0071e3] flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[0_2px_8px_rgba(0,113,227,0.35)]">
-                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                </svg>
+            <li v-if="roomsStore.isAiTyping" aria-live="polite" class="grid grid-cols-[32px_1fr] gap-x-3.5">
+              <UiAvatar name="DocuMind" ai class="mt-0.5" />
+              <div class="min-w-0">
+              <p class="mb-1 text-[14px] font-semibold text-ink">DocuMind</p>
+              <div v-if="roomsStore.aiStreamBuffer" class="text-[16px] leading-[1.7] text-ink">
+                <span v-html="renderContent(roomsStore.aiStreamBuffer)"></span><span class="ml-0.5 inline-block h-4 w-2 bg-alert align-text-bottom" aria-hidden="true"></span>
               </div>
-              <div class="flex-1 min-w-0 pt-1.5">
-                <span v-if="roomsStore.aiStreamBuffer" class="text-sm text-[#1d1d1f] leading-relaxed" v-html="renderContent(roomsStore.aiStreamBuffer)"></span>
-                <span v-if="roomsStore.aiStreamBuffer" class="inline-block w-0.5 h-4 bg-[#0071e3] ml-0.5 animate-pulse align-text-bottom"></span>
-                <span v-else class="flex items-center gap-1.5 py-1">
-                  <span class="w-2 h-2 rounded-full bg-[#6e6e73] animate-bounce" style="animation-delay:0ms"></span>
-                  <span class="w-2 h-2 rounded-full bg-[#6e6e73] animate-bounce" style="animation-delay:150ms"></span>
-                  <span class="w-2 h-2 rounded-full bg-[#6e6e73] animate-bounce" style="animation-delay:300ms"></span>
-                </span>
+              <p v-else class="text-[15px] text-ink-2">{{ $t('room.reading', { n: roomDocs.length }, roomDocs.length) }}</p>
               </div>
-            </div>
-          </div>
+            </li>
+          </ol>
         </div>
 
-        <!-- Input -->
-        <div class="flex-shrink-0 border-t border-black/[0.06] bg-white/80 backdrop-blur-xl px-4 py-4">
-          <div class="max-w-3xl mx-auto">
-            <div class="flex items-end gap-3 bg-white border border-black/[0.1] rounded-2xl px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)] focus-within:ring-2 focus-within:ring-[#0071e3]/30 focus-within:border-[#0071e3] transition-all">
-              <textarea v-model="inputText" @keydown="onKeydown" :disabled="roomsStore.isAiTyping"
-                placeholder="Ask anything about your documents…"
-                rows="1"
-                class="flex-1 resize-none bg-transparent text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none min-h-[1.5rem] max-h-32 overflow-y-auto disabled:opacity-50"
-                style="field-sizing: content;"
-              ></textarea>
-              <button @click="sendMessage" :disabled="!inputText.trim() || roomsStore.isAiTyping"
-                class="flex-shrink-0 p-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-30 disabled:cursor-not-allowed text-white transition-colors shadow-[0_1px_3px_rgba(0,113,227,0.4)]">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
-                </svg>
+        <!-- Composer -->
+        <div class="shrink-0 border-t border-line bg-surface px-4 py-4 sm:px-8">
+          <p v-if="roomsStore.aiError" class="mx-auto mb-3 max-w-3xl rounded-[5px] border border-danger bg-danger-soft px-3.5 py-2.5 text-[14px] text-danger" role="alert">
+            {{ $t('room.aiError') }}
+          </p>
+          <form class="mx-auto max-w-3xl" @submit.prevent="sendMessage">
+            <div class="flex items-end gap-2 rounded-[6px] border border-line-strong bg-surface p-2 pl-4 focus-within:ring-2 focus-within:ring-alert">
+              <label class="flex-1">
+                <span class="sr-only">{{ $t('room.message') }}</span>
+                <textarea v-model="inputText" :disabled="roomsStore.isAiTyping" rows="1"
+                  :placeholder="$t('room.placeholder')"
+                  class="max-h-32 min-h-10 w-full resize-none bg-transparent py-2 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none disabled:opacity-50"
+                  style="field-sizing: content;" @keydown="onKeydown"></textarea>
+              </label>
+              <UiButton type="submit" :disabled="!inputText.trim() || roomsStore.isAiTyping" :aria-label="$t('room.sendLabel')">
+                <ArrowUp class="size-4" /><span class="max-sm:hidden">{{ $t('room.send') }}</span>
+              </UiButton>
+            </div>
+            <p class="mt-1.5 px-1 text-[12px] text-ink-3">{{ $t('room.hint') }}</p>
+          </form>
+        </div>
+      </section>
+
+      <!-- Room panel: sources for the selected answer, documents, people -->
+      <aside :class="[
+        'w-full max-w-[420px] shrink-0 flex-col overflow-y-auto border-l border-line bg-ground',
+        'max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-20 max-xl:shadow-pass xl:flex',
+        showInfo ? 'flex' : 'hidden',
+      ]" :aria-label="$t('room.panel')">
+        <div class="flex items-center justify-between px-5 pt-5 xl:hidden">
+          <span class="label">{{ $t('room.panel') }}</span>
+          <button class="rounded p-1.5 text-ink-2 hover:bg-sunken hover:text-ink" :aria-label="$t('room.closePanel')" @click="showInfo = false"><X class="size-4" /></button>
+        </div>
+
+        <section class="flex flex-col gap-3 p-5" aria-labelledby="sources-title">
+          <h2 id="sources-title" class="text-[15px] font-semibold text-ink">{{ $t('room.sources') }}</h2>
+          <p v-if="!sourceMsg" class="rounded-pass border border-dashed border-line px-4 py-6 text-center text-[13px] text-ink-2">
+            {{ $t('room.sourcesEmpty') }}
+          </p>
+          <template v-else>
+            <SourcePass v-for="(src, i) in sourceMsg.sources" :key="i"
+              :index="i + 1" :document-name="src.document_name" :page="src.page" :score="src.score" :excerpt="src.chunk_content"
+              :active="activeSource === i" :data-source="i" />
+          </template>
+        </section>
+
+        <section class="flex flex-col gap-2 border-t border-line p-5" aria-labelledby="docs-title">
+          <div class="flex items-center justify-between">
+            <h2 id="docs-title" class="text-[15px] font-semibold text-ink">{{ $t('room.documents') }}</h2>
+            <button v-if="!editingDocs" class="text-[13px] font-semibold text-ink underline-offset-4 hover:underline" @click="startEditDocs">{{ $t('common.edit') }}</button>
+            <div v-else class="flex gap-3">
+              <button class="text-[13px] font-semibold text-ink-2 hover:text-ink" @click="cancelEditDocs">{{ $t('common.cancel') }}</button>
+              <button class="text-[13px] font-semibold text-ink underline disabled:opacity-50" :disabled="savingDocs" @click="saveDocChanges">
+                {{ savingDocs ? $t('common.saving') : $t('common.save') }}
               </button>
             </div>
-            <p class="text-[10px] text-[#6e6e73] mt-1.5 px-1">Enter to send · Shift+Enter for new line</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Info sidebar -->
-      <div v-if="showInfo" class="flex-shrink-0 w-56 border-l border-black/[0.06] bg-white/80 backdrop-blur-xl overflow-y-auto">
-        <div class="p-4 space-y-5">
-          <div>
-            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-[#6e6e73] mb-2">Online</h3>
-            <div v-if="roomsStore.connectedUsers.length === 0" class="text-xs text-[#6e6e73]">Just you</div>
-            <div v-for="user in roomsStore.connectedUsers" :key="user.id" class="flex items-center gap-2 py-1">
-              <div class="w-1.5 h-1.5 rounded-full bg-[#34c759] flex-shrink-0"></div>
-              <span class="text-xs font-medium text-[#1d1d1f] truncate">{{ user.name }}</span>
-            </div>
           </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-[10px] font-semibold uppercase tracking-widest text-[#6e6e73]">Documents</h3>
-              <button v-if="!editingDocs" @click="startEditDocs"
-                class="text-[10px] font-medium text-[#0071e3] hover:underline">Edit</button>
-              <div v-else class="flex gap-2">
-                <button @click="cancelEditDocs" class="text-[10px] text-[#6e6e73] hover:text-[#1d1d1f]">Cancel</button>
-                <button @click="saveDocChanges" :disabled="savingDocs"
-                  class="text-[10px] font-semibold text-[#0071e3] disabled:opacity-50">
-                  {{ savingDocs ? '…' : 'Save' }}
-                </button>
+          <template v-if="!editingDocs">
+            <p v-if="roomDocs.length === 0" class="text-[13px] text-ink-3">{{ $t('room.noneAttached') }}</p>
+            <div v-for="doc in roomDocs" :key="doc!.id" class="flex items-center justify-between gap-3 py-1.5">
+              <div class="min-w-0">
+                <p class="truncate text-[14px] font-semibold text-ink">{{ doc!.original_name }}</p>
+                <p class="font-mono text-[12px] text-ink-3">{{ $t('common.nChunks', { n: doc!.chunk_count ?? '—' }) }}</p>
               </div>
+              <StatusChip :status="doc!.status" />
             </div>
+          </template>
 
-            <!-- View mode -->
-            <template v-if="!editingDocs">
-              <div v-if="roomDocs.length === 0" class="text-xs text-[#6e6e73]">None attached</div>
-              <div v-for="doc in roomDocs" :key="doc!.id" class="flex items-start gap-2 py-1.5">
-                <div class="w-6 h-6 rounded-lg bg-[#0071e3]/[0.08] flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg class="w-3 h-3 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ doc!.original_name }}</p>
-                  <p class="text-[10px] text-[#6e6e73]">{{ doc!.chunk_count ?? '—' }} chunks</p>
-                </div>
-              </div>
-            </template>
+          <template v-else>
+            <p v-if="readyDocs.length === 0" class="py-2 text-[13px] text-ink-3">{{ $t('room.noneReady') }}</p>
+            <label v-for="doc in readyDocs" :key="doc.id"
+              :class="['flex cursor-pointer items-center gap-3 rounded-[5px] px-2 py-2', pendingDocIds.includes(doc.id) ? 'bg-surface' : 'hover:bg-surface']">
+              <input type="checkbox" :checked="pendingDocIds.includes(doc.id)" class="size-4 shrink-0 accent-[var(--dm-ink)]" @change="togglePendingDoc(doc.id)" />
+              <span class="min-w-0">
+                <span class="block truncate text-[14px] font-semibold text-ink">{{ doc.original_name }}</span>
+                <span class="block font-mono text-[12px] text-ink-3">{{ $t('common.nChunks', { n: doc.chunk_count ?? '—' }) }}</span>
+              </span>
+            </label>
+          </template>
+        </section>
 
-            <!-- Edit mode -->
-            <template v-else>
-              <div v-if="readyDocs.length === 0" class="text-xs text-[#6e6e73] py-2">No ready documents</div>
-              <label v-for="doc in readyDocs" :key="doc.id"
-                :class="['flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-colors', pendingDocIds.includes(doc.id) ? 'bg-[#0071e3]/[0.08]' : 'hover:bg-[#f5f5f7]']">
-                <input type="checkbox" :checked="pendingDocIds.includes(doc.id)" @change="togglePendingDoc(doc.id)"
-                  class="w-3.5 h-3.5 rounded accent-[#0071e3] flex-shrink-0" />
-                <div class="min-w-0">
-                  <p class="text-xs font-medium text-[#1d1d1f] truncate">{{ doc.original_name }}</p>
-                  <p class="text-[10px] text-[#6e6e73]">{{ doc.chunk_count ?? '—' }} chunks</p>
-                </div>
-              </label>
-            </template>
-          </div>
-        </div>
-      </div>
+        <section class="flex flex-col gap-2 border-t border-line p-5" aria-labelledby="online-title">
+          <h2 id="online-title" class="text-[15px] font-semibold text-ink">{{ $t('room.hereNow') }}</h2>
+          <p v-if="roomsStore.connectedUsers.length === 0" class="text-[13px] text-ink-3">{{ $t('room.justYou') }}</p>
+          <p v-for="user in roomsStore.connectedUsers" :key="user.id" class="flex items-center gap-2.5 text-[14px] text-ink">
+            <UiAvatar :name="user.name" size="sm" />{{ user.name }}
+          </p>
+        </section>
+      </aside>
     </div>
   </div>
 </template>

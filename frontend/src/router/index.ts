@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/', component: () => import('@/views/LandingView.vue'), meta: { public: true, landing: true } },
     { path: '/login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
     { path: '/register', component: () => import('@/views/RegisterView.vue'), meta: { public: true } },
     { path: '/invite/:token', component: () => import('@/views/AcceptInviteView.vue'), meta: { public: true } },
@@ -11,7 +12,6 @@ const router = createRouter({
       path: '/',
       component: () => import('@/components/AppLayout.vue'),
       children: [
-        { path: '', redirect: '/dashboard' },
         { path: 'dashboard', component: () => import('@/views/DashboardView.vue') },
         { path: 'documents', component: () => import('@/views/DocumentsView.vue') },
         { path: 'documents/upload', component: () => import('@/views/DocumentUploadView.vue') },
@@ -30,6 +30,8 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  // Signed-in users skip the landing.
+  if (to.meta.landing && auth.isAuthenticated()) return '/dashboard'
   if (to.meta.public) return true
   if (!auth.isAuthenticated()) return '/login'
   if (!auth.user) {

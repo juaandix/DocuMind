@@ -41,3 +41,9 @@ admin-panel/proxy.conf.json
 # Playwright
 test-results/
 playwright-report/
+
+# Impeccable design workflow: keep the product record and surface briefs, ignore scratch
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/questions/
+.impeccable/hook.cache.json

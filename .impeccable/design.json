@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T00:00:00Z",
+  "title": "Design System: DocuMind",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "primary", "displayName": "Rail Ink", "canonical": "#0b0d10", "cssVar": "--dm-ink / --dm-primary", "dark": "#f2f3f5", "tonalRamp": ["#050608", "#0b0d10", "#15181d", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#e6e8eb"] },
+      "ink-hover": { "role": "primary", "displayName": "Rail Lift", "canonical": "#1c2127", "cssVar": "--dm-primary-hover / --dm-rail-2", "dark": "#ffffff", "tonalRamp": ["#050608", "#0b0d10", "#15181d", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#e6e8eb"] },
+      "rail": { "role": "primary", "displayName": "Rail Ink (bars)", "canonical": "#0b0d10", "cssVar": "--dm-rail", "dark": "#101317", "tonalRamp": ["#050608", "#0b0d10", "#15181d", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#e6e8eb"] },
+      "rail-2": { "role": "primary", "displayName": "Rail Rule", "canonical": "#1c2127", "cssVar": "--dm-rail-2", "dark": "#1c2127", "tonalRamp": ["#050608", "#0b0d10", "#15181d", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#e6e8eb"] },
+      "gate-yellow": { "role": "secondary", "displayName": "Gate Yellow", "canonical": "#ffd400", "cssVar": "--dm-alert", "dark": "#ffd400", "tonalRamp": ["#6b5900", "#9e8300", "#c2a100", "#e6bf00", "#ffd400", "#ffe340", "#ffec80", "#fff4bf"] },
+      "gate-yellow-soft": { "role": "secondary", "displayName": "Pale Gate", "canonical": "#fff4bf", "cssVar": "--dm-alert-soft", "dark": "#2e2a0c", "tonalRamp": ["#6b5900", "#9e8300", "#c2a100", "#e6bf00", "#ffd400", "#ffe340", "#ffec80", "#fff4bf"] },
+      "signal-red": { "role": "tertiary", "displayName": "Signal Red", "canonical": "#c4231c", "cssVar": "--dm-danger", "dark": "#ff6b5e", "tonalRamp": ["#4d0d0a", "#70130e", "#8c1812", "#c4231c", "#ea6f65", "#f2a29b", "#f9cfcb", "#fdecea"] },
+      "signal-red-soft": { "role": "tertiary", "displayName": "Signal Red Wash", "canonical": "#fdecea", "cssVar": "--dm-danger-soft", "dark": "#3a1614", "tonalRamp": ["#4d0d0a", "#70130e", "#8c1812", "#c4231c", "#ea6f65", "#f2a29b", "#f9cfcb", "#fdecea"] },
+      "signal-red-on-ink": { "role": "tertiary", "displayName": "Signal Red on Ink", "canonical": "#ff6b5e", "cssVar": "--color-danger-on-ink", "dark": "#ff6b5e", "tonalRamp": ["#4d0d0a", "#70130e", "#8c1812", "#c4231c", "#ea6f65", "#f2a29b", "#f9cfcb", "#fdecea"] },
+      "panel-ground": { "role": "neutral", "displayName": "Panel Ground", "canonical": "#edeff2", "cssVar": "--dm-ground", "dark": "#0b0d10", "note": "Lightened from #E6E8EB so white panels separate by a hairline.", "tonalRamp": ["#0b0d10", "#15181d", "#2a2f37", "#60656d", "#9aa0a8", "#d5d8dd", "#e6e8eb", "#edeff2"] },
+      "surface": { "role": "neutral", "displayName": "Pass White", "canonical": "#ffffff", "cssVar": "--dm-surface", "dark": "#15181d", "tonalRamp": ["#0b0d10", "#15181d", "#2a2f37", "#60656d", "#9aa0a8", "#d5d8dd", "#f2f3f5", "#ffffff"] },
+      "sunken": { "role": "neutral", "displayName": "Sunken", "canonical": "#f2f3f5", "cssVar": "--dm-sunken", "dark": "#101317", "tonalRamp": ["#0b0d10", "#15181d", "#2a2f37", "#60656d", "#9aa0a8", "#d5d8dd", "#edeff2", "#f2f3f5"] },
+      "ink-2": { "role": "neutral", "displayName": "Ink 2", "canonical": "#474c55", "cssVar": "--dm-ink-2", "dark": "#b4b9c1", "tonalRamp": ["#0b0d10", "#1c2127", "#474c55", "#60656d", "#8d939c", "#b4b9c1", "#d5d8dd", "#f2f3f5"] },
+      "ink-3": { "role": "neutral", "displayName": "Ink 3", "canonical": "#60656d", "cssVar": "--dm-ink-3", "dark": "#8d939c", "tonalRamp": ["#0b0d10", "#1c2127", "#474c55", "#60656d", "#8d939c", "#b4b9c1", "#d5d8dd", "#f2f3f5"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#d5d8dd", "cssVar": "--dm-line", "dark": "#2a2f37", "tonalRamp": ["#0b0d10", "#1c2127", "#2a2f37", "#60656d", "#9aa0a8", "#d5d8dd", "#edeff2", "#f2f3f5"] },
+      "rail-ink": { "role": "neutral", "displayName": "Rail Text", "canonical": "#e6e8eb", "cssVar": "--dm-rail-ink", "dark": "#e6e8eb", "tonalRamp": ["#0b0d10", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#c9ccd2", "#e6e8eb", "#f2f3f5"] },
+      "rail-ink-2": { "role": "neutral", "displayName": "Rail Text Muted", "canonical": "#9aa0a8", "cssVar": "--dm-rail-ink-2", "dark": "#9aa0a8", "tonalRamp": ["#0b0d10", "#1c2127", "#474c55", "#6b7280", "#9aa0a8", "#c9ccd2", "#e6e8eb", "#f2f3f5"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing headline only, uppercase, printed inside the pass, max 16ch." },
+      "display-section": { "displayName": "Display Section", "purpose": "Landing section heads, uppercase." },
+      "figure": { "displayName": "Figure", "purpose": "Dashboard counts on the departures band." },
+      "figure-stub": { "displayName": "Stub Figure", "purpose": "S-number on a source pass stub, onboarding step numbers." },
+      "wordmark": { "displayName": "Wordmark", "purpose": "DOCUMIND beside the yellow mark, uppercase." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles (PageHeader, admin .page-title)." },
+      "title": { "displayName": "Title", "purpose": "Panel and section headings." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, forms, secondary lines at 13-14px." },
+      "answer": { "displayName": "Answer", "purpose": "Chat messages in the room, column max 768px." },
+      "label": { "displayName": "Segment Label", "purpose": "Uppercase tracked mono captions naming the value beside or beneath; table headers; status chips." },
+      "data": { "displayName": "Data", "purpose": "Pages, match scores, chunk counts, dates, file types; tabular numerals." }
+    },
+    "shadows": [
+      { "name": "pass", "value": "0 0 0 1px rgb(11 13 16 / 0.09), 0 1px 2px rgb(11 13 16 / 0.05)", "dark": "0 0 0 1px rgb(255 255 255 / 0.07), 0 1px 2px rgb(0 0 0 / 0.4)", "cssVar": "--dm-shadow", "purpose": "Hairline ring for every resting panel and pass." },
+      { "name": "raised", "value": "0 0 0 1px rgb(11 13 16 / 0.09), 0 12px 32px -12px rgb(11 13 16 / 0.28)", "dark": "0 0 0 1px rgb(255 255 255 / 0.08), 0 16px 36px -12px rgb(0 0 0 / 0.8)", "cssVar": "--dm-shadow-raised", "purpose": "Menus, drawer, landing and auth example pass, hovered room cards." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Press, menu enter, row enter, drawer exit, landing pass entrance." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.77, 0, 0.175, 1)", "purpose": "Departures rerank move (FLIP)." },
+      { "name": "ease-drawer", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Notification drawer slide in." },
+      { "name": "ease-base", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default colour/border/shadow transition on buttons, links and fields." },
+      { "name": "duration-base", "value": "140ms", "purpose": "Colour, border, shadow, opacity changes." },
+      { "name": "duration-press", "value": "160ms", "purpose": "Press scale to 0.97 on :active." },
+      { "name": "duration-menu", "value": "150ms in / 100ms out", "purpose": "Popover menus scale 0.97 and rise 4px from their trigger." },
+      { "name": "duration-drawer", "value": "300ms in / 200ms out", "purpose": "Drawer panel slides from the right; backdrop fades." },
+      { "name": "duration-rerank", "value": "400ms move / 250ms enter", "purpose": "Board row reranks in place; new row drops 6px." },
+      { "name": "duration-row-color", "value": "300ms", "purpose": "Queue row turning yellow or back." },
+      { "name": "duration-pass-in", "value": "600ms", "purpose": "Landing pass rises 16px once on load." },
+      { "name": "reduced-motion", "value": "drop travel, keep fades and colour", "purpose": "Keyframes zeroed; press scale, translates and rerank move removed." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px", "purpose": "Page padding 32px, 5-column count strip." },
+      { "name": "md", "value": "768px", "purpose": "Top-bar nav inline instead of drop-down sheet." },
+      { "name": "lg", "value": "1024px", "purpose": "Top-bar search, two-column board, auth split, landing stub beside the pass." },
+      { "name": "xl", "value": "1280px", "purpose": "Room source rail docked instead of overlay." },
+      { "name": "admin-narrow", "value": "760px", "purpose": "Admin dashboard collapses to one column." }
+    ],
+    "theming": {
+      "vue": "`.dark` class on <html>, set before first paint from localStorage 'theme' or prefers-color-scheme; toggled from the top bar. Tokens are --dm-* custom properties mapped to Tailwind via @theme inline.",
+      "admin": "Same --dm-* values redeclared in admin-panel/src/styles.scss (kept in sync by hand); follows prefers-color-scheme only; Angular Material M2 theme generated from ink, yellow and red ramps.",
+      "i18n": "vue-i18n typed catalogues en/es; locale saved as localStorage 'locale', default from navigator.language, fallback en; sets <html lang>. LocaleSwitch is a segmented EN/ES mono control with an on-ink variant."
+    },
+    "deviations": [
+      "Ground is #EDEFF2, lightened from the original #E6E8EB so white panels separate by a hairline.",
+      "Top-bar search is hidden on /documents; ⌘K focuses that page's own search field."
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink action; pressing lights the gate yellow.",
+      "html": "<button class=\"ds-btn-primary\">Create workspace</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 5px; background: var(--dm-primary, #0b0d10); color: var(--dm-on-primary, #ffffff); font: 600 14px 'Red Hat Text Variable', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 140ms ease, color 140ms ease; } .ds-btn-primary:hover { background: var(--dm-primary-hover, #1c2127); } .ds-btn-primary:active { background: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid var(--dm-focus, #0b0d10); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White with an ink outline; also presses yellow.",
+      "html": "<button class=\"ds-btn-secondary\">Export PDF</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 1px solid var(--dm-line-strong, #0b0d10); border-radius: 5px; background: var(--dm-surface, #ffffff); color: var(--dm-ink, #0b0d10); font: 600 14px 'Red Hat Text Variable', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 140ms ease, border-color 140ms ease; } .ds-btn-secondary:hover { background: var(--dm-sunken, #f2f3f5); } .ds-btn-secondary:active { background: var(--dm-alert, #ffd400); border-color: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); transform: scale(0.97); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--dm-focus, #0b0d10); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Mono label above a white 44px field; focus turns the border ink and adds a yellow ring.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Work email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@company.com\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; max-width: 360px; } .ds-field-label { font: 600 11px 'Red Hat Mono Variable', ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-ink-3, #60656d); } .ds-input { min-height: 44px; padding: 0 14px; border: 1px solid var(--dm-line, #d5d8dd); border-radius: 5px; background: var(--dm-surface, #ffffff); color: var(--dm-ink, #0b0d10); font: 400 15px 'Red Hat Text Variable', system-ui, sans-serif; transition: border-color 140ms, box-shadow 140ms; } .ds-input::placeholder { color: var(--dm-ink-3, #60656d); } .ds-input:focus { outline: none; border-color: var(--dm-line-strong, #0b0d10); box-shadow: 0 0 0 2px var(--dm-alert, #ffd400); }"
+    },
+    {
+      "name": "Ink Top Bar",
+      "kind": "nav",
+      "refersTo": "top-bar",
+      "description": "56px ink bar; the current page is white with a 2px yellow underline at the bar's edge.",
+      "html": "<nav class=\"ds-topbar\"><span class=\"ds-mark\">D</span><span class=\"ds-wordmark\">DocuMind</span><a class=\"ds-nav-item is-active\" href=\"#\">Dashboard</a><a class=\"ds-nav-item\" href=\"#\">Documents</a><a class=\"ds-nav-item\" href=\"#\">Chat Rooms</a><a class=\"ds-nav-item\" href=\"#\">Members</a></nav>",
+      "css": ".ds-topbar { display: flex; align-items: stretch; gap: 24px; height: 56px; padding: 0 32px; background: var(--dm-rail, #0b0d10); } .ds-mark { align-self: center; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 5px; background: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); font: 700 20px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-wordmark { align-self: center; margin: 0 24px 0 -14px; font: 700 20px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: #ffffff; } .ds-nav-item { display: flex; align-items: center; font: 500 14px 'Red Hat Text Variable', system-ui, sans-serif; color: var(--dm-rail-ink-2, #9aa0a8); text-decoration: none; transition: color 140ms; } .ds-nav-item:hover { color: #ffffff; } .ds-nav-item.is-active { color: #ffffff; font-weight: 600; box-shadow: inset 0 -2px 0 var(--dm-alert, #ffd400); } .ds-nav-item:focus-visible { outline: 2px solid var(--dm-alert, #ffd400); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "status-chip-ready",
+      "description": "State by form: solid ready, dashed in progress, red error, yellow just changed.",
+      "html": "<span class=\"ds-chip\">Ready</span> <span class=\"ds-chip ds-chip--progress\">Processing</span> <span class=\"ds-chip ds-chip--error\">Error</span> <span class=\"ds-chip ds-chip--changed\">Now ready</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--dm-line-strong, #0b0d10); border-radius: 4px; font: 600 11px 'Red Hat Mono Variable', ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-ink, #0b0d10); white-space: nowrap; } .ds-chip--progress { border-style: dashed; border-color: var(--dm-ink-3, #60656d); color: var(--dm-ink-2, #474c55); } .ds-chip--error { background: var(--dm-danger-soft, #fdecea); border-color: var(--dm-danger, #c4231c); color: var(--dm-danger, #c4231c); } .ds-chip--changed { background: var(--dm-alert, #ffd400); border-color: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); }"
+    },
+    {
+      "name": "Source Chips",
+      "kind": "chip",
+      "refersTo": "source-chip",
+      "description": "S1..Sn under an answer; the active one turns yellow and lights its pass.",
+      "html": "<div class=\"ds-sources\"><span class=\"ds-sources-label\">Sources</span><button class=\"ds-schip\" aria-pressed=\"true\">S1</button><button class=\"ds-schip\">S2</button><button class=\"ds-schip\">S3</button></div>",
+      "css": ".ds-sources { display: flex; align-items: center; gap: 6px; } .ds-sources-label { margin-right: 4px; font: 600 11px 'Red Hat Mono Variable', ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-ink-3, #60656d); } .ds-schip { min-height: 28px; padding: 0 8px; border: 0; border-radius: 4px; background: var(--dm-primary, #0b0d10); color: var(--dm-on-primary, #ffffff); font: 600 12px 'Red Hat Mono Variable', ui-monospace, monospace; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 140ms; } .ds-schip:hover { background: var(--dm-primary-hover, #1c2127); } .ds-schip:active { transform: scale(0.97); } .ds-schip[aria-pressed=\"true\"] { background: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); } .ds-schip:focus-visible { outline: 2px solid var(--dm-focus, #0b0d10); outline-offset: 2px; }"
+    },
+    {
+      "name": "Source Pass",
+      "kind": "card",
+      "refersTo": "source-pass",
+      "description": "A citation as a segmented boarding pass with a perforated stub carrying the S-number and match score.",
+      "html": "<article class=\"ds-pass is-active\"><div class=\"ds-pass-main\"><div class=\"ds-pass-row\"><span class=\"ds-pass-label\">Document</span><span class=\"ds-pass-label\">Page <b>14</b></span></div><p class=\"ds-pass-name\">Supplier_Contract_Q3.pdf</p><p class=\"ds-pass-excerpt\">Either party may terminate with 60 days written notice. (Illustrative sample.)</p></div><div class=\"ds-pass-stub\"><span class=\"ds-pass-label\">Source</span><span class=\"ds-pass-s\">S1</span><span><span class=\"ds-pass-label\">Match</span><br><b class=\"ds-pass-data\">0.91</b></span></div></article>",
+      "css": ".ds-pass { position: relative; display: grid; grid-template-columns: 1fr 112px; max-width: 400px; border-radius: 6px; background: var(--dm-surface, #ffffff); color: var(--dm-ink, #0b0d10); box-shadow: var(--dm-shadow, 0 0 0 1px rgb(11 13 16 / 0.09), 0 1px 2px rgb(11 13 16 / 0.05)); transition: box-shadow 200ms; } .ds-pass.is-active { box-shadow: 0 0 0 2px var(--dm-alert, #ffd400); } .ds-pass::before, .ds-pass::after { content: ''; position: absolute; right: 106px; width: 12px; height: 12px; border-radius: 50%; background: var(--notch, var(--dm-ground, #edeff2)); } .ds-pass::before { top: -6px; } .ds-pass::after { bottom: -6px; } .ds-pass-main { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; min-width: 0; } .ds-pass-row { display: flex; justify-content: space-between; gap: 12px; } .ds-pass-label { font: 600 11px 'Red Hat Mono Variable', ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dm-ink-3, #60656d); } .ds-pass-label b, .ds-pass-data { font: 600 13px 'Red Hat Mono Variable', ui-monospace, monospace; color: var(--dm-ink, #0b0d10); } .ds-pass-name { margin: 0; font: 600 14px/1.35 'Red Hat Text Variable', system-ui, sans-serif; overflow-wrap: anywhere; } .ds-pass-excerpt { margin: 0; font: 400 14px/1.6 'Red Hat Text Variable', system-ui, sans-serif; color: var(--dm-ink-2, #474c55); } .ds-pass-stub { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; padding: 12px; border-left: 1px dashed var(--dm-line, #d5d8dd); } .ds-pass-s { font: 600 34px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; }"
+    },
+    {
+      "name": "Departures Queue",
+      "kind": "custom",
+      "refersTo": "status-chip-changed",
+      "description": "Live queue rows on the ink band; a just-changed row goes solid yellow and holds until opened.",
+      "html": "<ul class=\"ds-queue\"><li class=\"ds-qrow is-now\"><a href=\"#\">Audit_Report_2026.docx</a><span class=\"ds-qchip\">Now ready</span><span class=\"ds-qtime\">10:06</span></li><li class=\"ds-qrow\"><a href=\"#\">SLA_Annex.pdf</a><span class=\"ds-qchip ds-qchip--progress\">Processing</span><span class=\"ds-qtime\">10:02</span></li><li class=\"ds-qrow\"><a href=\"#\">Privacy_Policy.txt</a><span class=\"ds-qchip ds-qchip--error\">Error</span><span class=\"ds-qtime\">10:07</span></li></ul>",
+      "css": ".ds-queue { list-style: none; margin: 0; padding: 0; max-width: 640px; border: 1px solid var(--dm-rail-2, #1c2127); border-radius: 6px; overflow: hidden; background: var(--dm-rail, #0b0d10); } .ds-qrow { display: grid; grid-template-columns: minmax(0, 1fr) auto 48px; align-items: center; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--dm-rail-2, #1c2127); color: #ffffff; transition: background-color 300ms; } .ds-qrow:first-child { border-top: 0; } .ds-qrow a { color: inherit; font: 600 14px 'Red Hat Text Variable', system-ui, sans-serif; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-qrow a:hover { text-decoration: underline; } .ds-qrow.is-now { background: var(--dm-alert, #ffd400); color: var(--dm-on-alert, #0b0d10); } .ds-qchip { padding: 2px 8px; border: 1px solid #ffffff; border-radius: 4px; font: 600 11px 'Red Hat Mono Variable', ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; } .is-now .ds-qchip { border-color: var(--dm-on-alert, #0b0d10); } .ds-qchip--progress { border-style: dashed; border-color: var(--dm-rail-ink-2, #9aa0a8); color: var(--dm-rail-ink, #e6e8eb); } .ds-qchip--error { border-color: #ff6b5e; color: #ff6b5e; } .ds-qtime { text-align: right; font: 400 12px 'Red Hat Mono Variable', ui-monospace, monospace; color: var(--dm-rail-ink-2, #9aa0a8); } .is-now .ds-qtime { color: var(--dm-on-alert, #0b0d10); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Gate Board and the Pass",
+    "overview": "DocuMind treats documents like travel documents. The workspace is a live departures board that tells you what changed since you last looked; every source an answer cites is a segmented boarding pass you can verify at a glance. The world is printed ephemera rendered as interface: ink bars, panel-grey ground, white passes divided by thin rules, uppercase mono segment labels, condensed figures, a perforated stub carrying the S-number.\n\nDensity is operational, not airy. Tables, counts and timestamps are first-class and tabular; prose is short and set in a quiet sans. The palette is almost entirely ink and steel, so the one yellow carries meaning every time it appears: something changed, something is now, something is pressed. Red appears only for failure. State is always carried by form as well as colour, so the board reads the same in light, dark and for colour-blind users.\n\nThe system explicitly rejects the RAG category default it was built against: soft rounded cards, a blue primary, chat bubbles, and grey source chips that hide where an answer came from.",
+    "keyCharacteristics": [
+      "Ink top bar and ink departures band; light panel-grey ground below (dark theme: ink ground, slate panels).",
+      "One alert yellow (#FFD400) with a reserved vocabulary; no other accent hue.",
+      "Three-voice type: Barlow Condensed for identifiers and counts, Red Hat Mono for labels and data, Red Hat Text for prose.",
+      "Square-ish corners (4-6px), hairline-drawn panels, segments split by thin vertical rules, dashed stub edges with punched notches.",
+      "Status by form: solid outline ready, dashed in progress, red error, yellow just changed.",
+      "Light and dark themes are both first-class; English and Spanish are both first-class."
+    ],
+    "rules": [
+      { "name": "The Gate Board Yellow Rule", "body": "Yellow means \"changed\" or \"now\", never decoration. Its sanctioned uses are: a document that just finished or failed (NOW READY row and chip, held until acknowledged), unread counts and unread rows, the active citation (S-chip and its ring-2 pass), the active nav underline, the pressed state of primary and secondary buttons, the focus ring of text fields and the composer, the dark-theme focus outline, the streaming cursor, transient confirmations (export queued), text selection, and the brand plate (logo mark, AI avatar). The one at-rest yellow action is Upload on the departures band. A new surface that wants yellow must fit one of these.", "section": "colors" },
+      { "name": "The Red Is Failure Rule", "body": "Red appears only for errors and destructive actions. Never for emphasis, never for counts that are not failures (a failed count of 0 is white, not red).", "section": "colors" },
+      { "name": "The Ink Bars Stay Ink Rule", "body": "The top bar, departures band and admin rail are dark in both themes; their text uses the rail tokens, and red on them uses `signal-red-on-ink`.", "section": "colors" },
+      { "name": "The Three Voices Rule", "body": "Condensed for identifiers and counts, mono for labels and numbers, sans for sentences. A number in a sans paragraph, or a sentence set in condensed, is out of world.", "section": "typography" },
+      { "name": "The Segment Label Rule", "body": "Every uppercase mono label names the field directly beneath or beside it (DOCUMENT, PAGE, MATCH, READY). Labels are data captions on a pass, not decorative overlines above headings.", "section": "typography" },
+      { "name": "The Hairline Rule", "body": "A panel is drawn by its 1px ring, not lifted. If a surface needs more separation, use a rule or the ground colour, not a bigger shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do draw panels with the pass hairline on Panel Ground (#EDEFF2), not a heavier shadow or a darker ground.",
+      "Do carry every status by form and colour together: solid outline ready, dashed in progress, red error, yellow just changed.",
+      "Do show citations as S-chips that open Source Passes with DOCUMENT, PAGE, excerpt, S-number and MATCH visible.",
+      "Do set counts and S-numbers in Barlow Condensed, labels and figures in Red Hat Mono with tabular numbers, prose in Red Hat Text.",
+      "Do use 4px / 5px / 6px corners for chips / controls / panels.",
+      "Do keep the ink bars dark in both themes and use `signal-red-on-ink` for errors on them.",
+      "Do set `--notch` to the colour behind a pass when it sits on anything other than the ground.",
+      "Do give every pressable the 0.97 press and every text field the yellow focus ring.",
+      "Do build every new string in both en and es catalogues."
+    ],
+    "donts": [
+      "Don't use yellow outside The Gate Board Yellow Rule: no yellow headings, borders, illustrations or resting buttons other than the band's Upload.",
+      "Don't introduce a second accent hue; blue primaries in particular are the category default this world refuses.",
+      "Don't render chat as bubbles or sources as grey chips; messages sit in an avatar gutter and sources are ink S-chips with passes.",
+      "Don't use soft, large-radius cards in the app; the 14px landing pass is the only large object.",
+      "Don't use red for anything but failure and destructive actions.",
+      "Don't set uppercase mono labels above headings as decoration; a label always names the value beside or beneath it.",
+      "Don't show the top-bar search on /documents; that page owns its search field and ⌘K."
+    ]
+  }
+}

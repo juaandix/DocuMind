@@ -2,6 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
+import { Loader, TriangleAlert } from 'lucide-vue-next'
+import AuthShell from '@/components/ui/AuthShell.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import { useI18n } from 'vue-i18n'
 
 interface InviteInfo {
   email: string
@@ -11,6 +16,7 @@ interface InviteInfo {
 }
 
 const route = useRoute()
+const { t } = useI18n()
 const router = useRouter()
 
 const token = route.params.token as string
@@ -47,119 +53,46 @@ async function handleAccept() {
     router.push('/dashboard')
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
-    error.value = err.response?.data?.detail ?? 'Failed to accept invitation'
+    error.value = err.response?.data?.detail ?? t('invite.failed')
   } finally {
     submitting.value = false
   }
 }
 
-const roleLabel: Record<string, string> = {
-  OWNER: 'Owner',
-  ADMIN: 'Admin',
-  MEMBER: 'Member',
-}
+const roleLabel = (role: string) => (['OWNER', 'ADMIN', 'MEMBER'].includes(role) ? t(`roles.${role}`) : role)
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#e8e8ed] flex items-center justify-center p-6">
-    <div class="w-full max-w-md">
-      <!-- Logo -->
-      <div class="flex items-center justify-center gap-2.5 mb-8">
-        <div class="w-9 h-9 rounded-xl bg-[#0071e3] flex items-center justify-center shadow-[0_2px_10px_rgba(0,113,227,0.35)]">
-          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-        </div>
-        <span class="text-lg font-semibold text-[#1d1d1f] tracking-tight">DocuMind</span>
-      </div>
+  <AuthShell>
+    <div v-if="loading" class="flex items-center gap-3 text-ink-2" role="status"><Loader class="size-5 animate-spin" />{{ $t('invite.checking') }}</div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] p-10 flex justify-center">
-        <div class="w-6 h-6 border-2 border-[#0071e3]/30 border-t-[#0071e3] rounded-full animate-spin"></div>
-      </div>
-
-      <!-- Not found -->
-      <div v-else-if="notFound" class="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] p-10 text-center">
-        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-          </svg>
-        </div>
-        <p class="text-base font-semibold text-[#1d1d1f]">Invite not found</p>
-        <p class="text-sm text-[#6e6e73] mt-1">This invite link has expired or already been used.</p>
-        <router-link to="/login" class="inline-block mt-5 text-sm font-medium text-[#0071e3] hover:underline">
-          Back to login
-        </router-link>
-      </div>
-
-      <!-- Invite card -->
-      <div v-else-if="info" class="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] overflow-hidden">
-        <!-- Header -->
-        <div class="px-8 pt-8 pb-6 border-b border-black/[0.06]">
-          <p class="text-xs font-medium text-[#6e6e73] uppercase tracking-widest mb-1">You've been invited</p>
-          <h1 class="text-xl font-semibold text-[#1d1d1f] leading-snug">
-            Join <span class="text-[#0071e3]">{{ info.workspace_name }}</span>
-          </h1>
-          <p class="text-sm text-[#6e6e73] mt-1.5">
-            <span class="font-medium text-[#1d1d1f]">{{ info.inviter_name }}</span> invited you as
-            <span :class="[
-              'font-medium px-1.5 py-0.5 rounded-full text-xs ml-0.5',
-              info.role === 'ADMIN' ? 'bg-[#0071e3]/[0.08] text-[#0071e3]' : 'bg-black/[0.04] text-[#6e6e73]'
-            ]">{{ roleLabel[info.role] ?? info.role }}</span>
-          </p>
-        </div>
-
-        <form @submit.prevent="handleAccept" class="px-8 py-6 space-y-4">
-          <!-- Email (readonly) -->
-          <div>
-            <label class="block text-xs font-medium text-[#1d1d1f] mb-1.5">Email</label>
-            <input
-              :value="info.email"
-              readonly
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-black/[0.12] bg-[#f5f5f7] text-[#6e6e73] cursor-not-allowed"
-            />
-          </div>
-
-          <!-- Full name -->
-          <div>
-            <label class="block text-xs font-medium text-[#1d1d1f] mb-1.5">Full name</label>
-            <input
-              v-model="fullName"
-              type="text"
-              required
-              placeholder="Your name"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-black/[0.12] bg-[#f5f5f7] text-[#1d1d1f] placeholder-[#a0a0a5] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-colors"
-            />
-          </div>
-
-          <!-- Password -->
-          <div>
-            <label class="block text-xs font-medium text-[#1d1d1f] mb-1.5">Password</label>
-            <input
-              v-model="password"
-              type="password"
-              required
-              minlength="8"
-              placeholder="At least 8 characters"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-black/[0.12] bg-[#f5f5f7] text-[#1d1d1f] placeholder-[#a0a0a5] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-colors"
-            />
-          </div>
-
-          <p v-if="error" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ error }}</p>
-
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="w-full bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2.5 shadow-[0_1px_3px_rgba(0,113,227,0.4)] transition-colors flex items-center justify-center gap-2"
-          >
-            <svg v-if="submitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-            </svg>
-            {{ submitting ? 'Joining…' : 'Accept invitation' }}
-          </button>
-        </form>
-      </div>
+    <div v-else-if="notFound">
+      <TriangleAlert class="mb-4 size-7 text-ink" :stroke-width="1.75" />
+      <h1 class="text-[26px] font-semibold tracking-[-0.015em] text-ink">{{ $t('invite.invalidTitle') }}</h1>
+      <p class="mt-1 text-[15px] text-ink-2">{{ $t('invite.invalidBody') }}</p>
+      <UiButton to="/login" variant="secondary" class="mt-6">{{ $t('invite.toSignIn') }}</UiButton>
     </div>
-  </div>
+
+    <template v-else-if="info">
+      <p class="label">{{ $t('invite.label') }}</p>
+      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.015em] text-ink">{{ $t('invite.join', { workspace: info.workspace_name }) }}</h1>
+      <p class="mt-1 text-[15px] text-ink-2">
+        {{ $t('invite.invitedAs', { inviter: info.inviter_name }) }}
+        <span class="rounded-[4px] border border-line-strong px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{{ roleLabel(info.role) }}</span>
+      </p>
+
+      <form class="mt-8 flex flex-col gap-4" @submit.prevent="handleAccept">
+        <p v-if="error" class="rounded-[5px] border border-danger bg-danger-soft px-3.5 py-2.5 text-[14px] text-danger" role="alert">{{ error }}</p>
+        <div class="flex flex-col gap-1.5">
+          <span class="label">{{ $t('common.email') }}</span>
+          <p class="flex min-h-11 items-center rounded-[5px] border border-line bg-sunken px-3.5 text-[15px] text-ink-2">{{ info.email }}</p>
+        </div>
+        <UiInput v-model="fullName" :label="$t('common.fullName')" autocomplete="name" required />
+        <UiInput v-model="password" :label="$t('common.password')" type="password" autocomplete="new-password" :hint="$t('auth.passwordHint')" required />
+        <UiButton type="submit" :disabled="submitting" class="mt-2 w-full min-h-11">
+          <Loader v-if="submitting" class="size-4 animate-spin" />{{ submitting ? $t('invite.joining') : $t('invite.accept') }}
+        </UiButton>
+      </form>
+    </template>
+  </AuthShell>
 </template>

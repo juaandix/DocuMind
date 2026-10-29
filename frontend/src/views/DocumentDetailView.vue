@@ -1,37 +1,38 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft, X, Loader } from 'lucide-vue-next'
 import { useDocumentsStore } from '@/stores/documents.store'
-import type { Document, DocumentStatus } from '@/types/document'
+import { documentsService } from '@/services/documents.service'
+import UiButton from '@/components/ui/UiButton.vue'
+import StatusChip from '@/components/ui/StatusChip.vue'
+import { docType, formatSize, formatDateTime as formatDate } from '@/utils/format'
+import { useI18n } from 'vue-i18n'
+import type { Document } from '@/types/document'
 
 const route = useRoute()
 const router = useRouter()
 const store = useDocumentsStore()
+const { t } = useI18n()
 
-const doc = ref<Document | null>(null)
+const id = route.params.id as string
+const fetched = ref<Document | null>(null)
+// Prefer the store copy so status polling updates this page live.
+const doc = computed(() => store.documents.find(d => d.id === id) ?? fetched.value)
 const loading = ref(true)
 const tagInput = ref('')
 const savingTags = ref(false)
 const deleting = ref(false)
 
-const statusConfig: Record<DocumentStatus, { label: string; cls: string }> = {
-  UPLOADING: { label: 'Uploading', cls: 'bg-[#0071e3]/[0.08] text-[#0071e3]' },
-  PROCESSING: { label: 'Processing', cls: 'bg-[#ff9f0a]/[0.1] text-[#b86d00]' },
-  READY: { label: 'Ready', cls: 'bg-[#34c759]/[0.1] text-[#248a3d]' },
-  ERROR: { label: 'Error', cls: 'bg-red-50 text-red-600' },
-}
-
 onMounted(async () => {
-  const id = route.params.id as string
-  doc.value = store.documents.find(d => d.id === id) ?? null
   if (!doc.value) {
     try {
-      const { documentsService } = await import('@/services/documents.service')
-      doc.value = await documentsService.get(id)
+      fetched.value = await documentsService.get(id)
     } catch { router.push('/documents') }
   }
   loading.value = false
-  if (doc.value?.status === 'PROCESSING') store.pollStatus(doc.value.id)
+  store.acknowledge(id)
+  if (doc.value?.status === 'PROCESSING' || doc.value?.status === 'UPLOADING') store.pollStatus(id)
 })
 
 const tags = computed(() => doc.value?.tags ?? [])
@@ -53,131 +54,112 @@ async function saveTags() {
   if (!doc.value) return
   savingTags.value = true
   try {
-    const { documentsService } = await import('@/services/documents.service')
     await documentsService.updateTags(doc.value.id, doc.value.tags)
   } finally { savingTags.value = false }
 }
 
 async function handleDelete() {
-  if (!doc.value || !confirm('Delete this document?')) return
+  if (!doc.value || !confirm(t('documents.confirmDelete'))) return
   deleting.value = true
   try { await store.removeDocument(doc.value.id); router.push('/documents') }
   finally { deleting.value = false }
 }
 
-function formatSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 </script>
 
 <template>
-  <div class="p-8 max-w-3xl">
-    <div v-if="loading" class="flex items-center gap-3 py-20">
-      <div class="w-5 h-5 border-2 border-[#0071e3]/30 border-t-[#0071e3] rounded-full animate-spin"></div>
-      <span class="text-sm text-[#6e6e73]">Loading…</span>
+  <div class="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-8">
+    <router-link to="/documents" class="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink">
+      <ArrowLeft class="size-4" />{{ $t('nav.documents') }}
+    </router-link>
+
+    <div v-if="loading" class="flex items-center gap-3 py-20 text-ink-2">
+      <Loader class="size-5 animate-spin" />{{ $t('detail.loading') }}
     </div>
 
     <template v-else-if="doc">
-      <div class="flex items-center gap-2 mb-6">
-        <router-link to="/documents" class="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </router-link>
-        <h1 class="text-xl font-semibold text-[#1d1d1f] truncate">{{ doc.original_name }}</h1>
+      <header class="flex flex-wrap items-start justify-between gap-4">
+        <h1 class="min-w-0 text-[26px] font-semibold leading-tight tracking-tight break-words text-ink">{{ doc.original_name }}</h1>
+        <StatusChip :status="doc.status" />
+      </header>
+
+      <p v-if="doc.status === 'PROCESSING' || doc.status === 'UPLOADING'" class="flex items-center gap-3 rounded-pass border border-dashed border-ink-3 bg-surface px-4 py-3 text-[14px] text-ink-2" role="status">
+        <Loader class="size-4 shrink-0 animate-spin" />
+        {{ $t('detail.processingNote') }}
+      </p>
+      <div v-if="doc.status === 'ERROR'" class="rounded-pass border border-danger bg-danger-soft px-4 py-3" role="alert">
+        <p class="text-[14px] font-semibold text-danger">{{ $t('detail.failed') }}</p>
+        <p v-if="doc.error_message" class="mt-0.5 text-[13px] text-danger">{{ doc.error_message }}</p>
       </div>
 
-      <div v-if="doc.status === 'PROCESSING'" class="mb-4 flex items-center gap-3 bg-[#ff9f0a]/[0.08] border border-[#ff9f0a]/30 rounded-xl px-4 py-3">
-        <div class="w-2 h-2 rounded-full bg-[#ff9f0a] animate-pulse flex-shrink-0"></div>
-        <p class="text-sm text-[#b86d00]">Processing — chunks will be ready shortly</p>
-      </div>
-      <div v-if="doc.status === 'ERROR'" class="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-        <p class="text-sm font-medium text-red-700">Processing failed</p>
-        <p v-if="doc.error_message" class="text-xs text-red-500 mt-0.5">{{ doc.error_message }}</p>
-      </div>
-
-      <!-- Info grid -->
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 mb-4">
-        <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider mb-4">Document Info</h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Status</p>
-            <span :class="['text-xs font-medium px-2 py-0.5 rounded-full', statusConfig[doc.status].cls]">
-              {{ statusConfig[doc.status].label }}
-            </span>
+      <!-- The document as a pass: identity segments + stub -->
+      <section :aria-label="$t('detail.details')" class="grid rounded-pass bg-surface shadow-pass sm:grid-cols-[1fr_140px]">
+        <dl class="grid grid-cols-2 sm:grid-cols-4">
+          <div class="px-5 py-4">
+            <dt class="label">{{ $t('common.type') }}</dt>
+            <dd class="mt-1 font-mono text-[15px] font-semibold text-ink">{{ docType(doc.mime_type, doc.original_name) }}</dd>
           </div>
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Size</p>
-            <p class="text-sm font-medium text-[#1d1d1f]">{{ formatSize(doc.size_bytes) }}</p>
+          <div class="border-l border-line px-5 py-4">
+            <dt class="label">{{ $t('common.size') }}</dt>
+            <dd class="mt-1 font-mono text-[15px] font-semibold text-ink">{{ formatSize(doc.size_bytes) }}</dd>
           </div>
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Type</p>
-            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.mime_type }}</p>
+          <div class="border-line px-5 py-4 max-sm:border-t sm:border-l">
+            <dt class="label">{{ $t('detail.pages') }}</dt>
+            <dd class="mt-1 font-mono text-[15px] font-semibold text-ink">{{ doc.page_count ?? '—' }}</dd>
           </div>
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Pages</p>
-            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.page_count ?? '—' }}</p>
+          <div class="border-l border-line px-5 py-4 max-sm:border-t">
+            <dt class="label">{{ $t('common.chunks') }}</dt>
+            <dd class="mt-1 font-mono text-[15px] font-semibold text-ink">{{ doc.chunk_count ?? '—' }}</dd>
           </div>
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Chunks</p>
-            <p class="text-sm font-medium text-[#1d1d1f]">{{ doc.chunk_count ?? '—' }}</p>
+          <div class="col-span-2 border-t border-line px-5 py-4">
+            <dt class="label">{{ $t('detail.uploaded') }}</dt>
+            <dd class="mt-1 font-mono text-[14px] text-ink">{{ formatDate(doc.created_at) }}</dd>
           </div>
-          <div>
-            <p class="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-widest mb-1.5">Processed</p>
-            <p class="text-sm font-medium text-[#1d1d1f]">{{ formatDate(doc.processed_at) }}</p>
+          <div class="col-span-2 border-t border-l border-line px-5 py-4">
+            <dt class="label">{{ $t('detail.processed') }}</dt>
+            <dd class="mt-1 font-mono text-[14px] text-ink">{{ formatDate(doc.processed_at) }}</dd>
           </div>
+        </dl>
+        <div class="flex flex-col justify-between gap-2 border-dashed border-line px-5 py-4 max-sm:border-t sm:border-l">
+          <p class="label">{{ $t('common.document') }}</p>
+          <p class="font-display text-[34px] font-semibold leading-none text-ink">{{ docType(doc.mime_type, doc.original_name) }}</p>
+          <p class="truncate font-mono text-[11px] text-ink-3" :title="doc.id">{{ doc.id.slice(-8).toUpperCase() }}</p>
         </div>
-      </div>
+      </section>
 
       <!-- Tags -->
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 mb-4">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xs font-semibold text-[#6e6e73] uppercase tracking-wider">Tags</h2>
-          <span v-if="savingTags" class="text-xs text-[#6e6e73]">Saving…</span>
+      <section aria-labelledby="tags-title" class="rounded-pass bg-surface p-5 shadow-pass">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 id="tags-title" class="text-base font-semibold text-ink">{{ $t('detail.tags') }}</h2>
+          <span v-if="savingTags" class="font-mono text-[12px] text-ink-3" role="status">{{ $t('common.saving') }}</span>
         </div>
-        <div class="flex flex-wrap gap-1.5 mb-4 min-h-[2rem]">
-          <span v-for="tag in tags" :key="tag"
-            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-[#0071e3]/[0.08] text-[#0071e3]">
-            {{ tag }}
-            <button @click="removeTag(tag)" class="hover:text-red-500 transition-colors ml-0.5">
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+        <div class="mb-4 flex flex-wrap gap-1.5">
+          <span v-for="tag in tags" :key="tag" class="inline-flex items-center gap-1 rounded-[4px] border border-line pl-2.5 font-mono text-[12px] font-semibold text-ink">
+            # {{ tag }}
+            <button class="rounded p-1.5 text-ink-3 hover:text-danger" :aria-label="$t('detail.removeTag', { tag })" @click="removeTag(tag)">
+              <X class="size-3" />
             </button>
           </span>
-          <span v-if="tags.length === 0" class="text-xs text-[#6e6e73]">No tags yet</span>
+          <span v-if="tags.length === 0" class="text-[13px] text-ink-3">{{ $t('detail.noTags') }}</span>
         </div>
-        <div class="flex gap-2">
-          <input v-model="tagInput" @keydown.enter.prevent="addTag" type="text" placeholder="Add a tag…"
-            class="flex-1 rounded-lg border border-black/[0.12] bg-[#f5f5f7] px-3 py-2 text-sm text-[#1d1d1f] placeholder-[#6e6e73] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3]"
-          />
-          <button @click="addTag"
-            class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors">
-            Add
-          </button>
-        </div>
-      </div>
+        <form class="flex gap-2" @submit.prevent="addTag">
+          <label class="flex-1">
+            <span class="sr-only">{{ $t('detail.newTag') }}</span>
+            <input v-model="tagInput" type="text" :placeholder="$t('detail.addTag')"
+              class="min-h-10 w-full rounded-[5px] border border-line bg-surface px-3 text-[14px] text-ink placeholder:text-ink-3 focus:border-line-strong focus:ring-2 focus:ring-alert focus:outline-none" />
+          </label>
+          <UiButton type="submit" variant="secondary">{{ $t('detail.add') }}</UiButton>
+        </form>
+      </section>
 
-      <!-- Danger zone -->
-      <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-5 border border-red-200/50">
-        <h2 class="text-xs font-semibold text-red-600 uppercase tracking-wider mb-4">Danger Zone</h2>
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-[#1d1d1f]">Delete this document</p>
-            <p class="text-xs text-[#6e6e73] mt-0.5">This will also remove it from all chat rooms.</p>
-          </div>
-          <button @click="handleDelete" :disabled="deleting"
-            class="flex-shrink-0 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg px-4 py-2 disabled:opacity-50 transition-colors">
-            {{ deleting ? 'Deleting…' : 'Delete' }}
-          </button>
+      <!-- Destructive action, kept apart -->
+      <section aria-labelledby="danger-title" class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+        <div>
+          <h2 id="danger-title" class="text-[15px] font-semibold text-ink">{{ $t('detail.deleteTitle') }}</h2>
+          <p class="text-[13px] text-ink-2">{{ $t('detail.deleteBody') }}</p>
         </div>
-      </div>
+        <UiButton variant="danger" :disabled="deleting" @click="handleDelete">{{ deleting ? $t('detail.deleting') : $t('detail.deleteTitle') }}</UiButton>
+      </section>
     </template>
   </div>
 </template>

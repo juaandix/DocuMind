@@ -104,7 +104,34 @@ describe('useDocumentsStore', () => {
     await vi.advanceTimersByTimeAsync(3000)
     expect(store.documents[0].status).toBe('READY')
     expect(store.documents[0].chunk_count).toBe(42)
+    expect(store.changedIds.has('doc1')).toBe(true)
 
     vi.useRealTimers()
+  })
+
+  it('marks documents that finish processing between fetches until acknowledged', async () => {
+    vi.mocked(documentsService.list)
+      .mockResolvedValueOnce([{ ...mockDoc, status: 'PROCESSING' }])
+      .mockResolvedValueOnce([{ ...mockDoc, status: 'READY' }])
+
+    const store = useDocumentsStore()
+    await store.fetchDocuments()
+    expect(store.changedIds.size).toBe(0)
+
+    await store.fetchDocuments()
+    expect(store.changedIds.has('doc1')).toBe(true)
+
+    store.acknowledge('doc1')
+    expect(store.changedIds.has('doc1')).toBe(false)
+  })
+
+  it('does not mark documents that were already ready on first load', async () => {
+    vi.mocked(documentsService.list).mockResolvedValue([{ ...mockDoc, status: 'READY' }])
+
+    const store = useDocumentsStore()
+    await store.fetchDocuments()
+    await store.fetchDocuments()
+
+    expect(store.changedIds.size).toBe(0)
   })
 })
