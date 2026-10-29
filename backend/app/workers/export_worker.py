@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import logging
@@ -7,14 +6,14 @@ from datetime import UTC, datetime
 
 from bson import ObjectId
 
-from app.workers.celery_app import celery_app
+from app.workers.celery_app import celery_app, run_async
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, max_retries=3)
 def export_chat_pdf(self, room_id: str, workspace_id: str, requested_by: str):
-    asyncio.run(_export_chat_pdf_async(room_id, workspace_id, requested_by))
+    run_async(_export_chat_pdf_async(room_id, workspace_id, requested_by))
 
 
 async def _export_chat_pdf_async(room_id: str, workspace_id: str, requested_by: str):

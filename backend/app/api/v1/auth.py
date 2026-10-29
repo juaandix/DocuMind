@@ -40,7 +40,9 @@ async def register(body: UserRegister):
     slug = slugify(body.workspace_name)
     # ensure unique slug
     if await db.workspaces.find_one({"slug": slug}):
-        slug = f"{slug}-{str(workspace_id)[:6]}"
+        # The ObjectId's tail (counter + random) differs between ids; its head is
+        # a timestamp and collided for same-named workspaces created minutes apart.
+        slug = f"{slug}-{str(workspace_id)[-6:]}"
 
     await db.workspaces.insert_one(
         {

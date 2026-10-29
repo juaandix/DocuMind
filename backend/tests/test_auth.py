@@ -105,3 +105,18 @@ async def test_token_form_login_wrong_password(client):
         data={"username": "nobody@example.com", "password": "wrong"},
     )
     assert resp.status_code == 401
+
+
+async def test_register_same_workspace_name_back_to_back(client):
+    # Slugs once took the ObjectId's timestamp head and collided within minutes.
+    for i in range(3):
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": f"same-name-{i}@example.com",
+                "password": "securepassword",
+                "full_name": "User",
+                "workspace_name": "Acme Legal",
+            },
+        )
+        assert resp.status_code == 201, resp.text
